@@ -1,5 +1,6 @@
 package com.Star.Star;
 
+import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -7,7 +8,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-public class BlockBody {
+public class BlockBody implements Serializable {
 	final String prevBlockHash;
 	final PublicKey minerAdress;
 	long timestamp;

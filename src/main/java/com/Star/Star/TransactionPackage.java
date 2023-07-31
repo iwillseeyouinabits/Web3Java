@@ -1,9 +1,10 @@
 package com.Star.Star;
 
+import java.io.Serializable;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
-public class TransactionPackage {
+public class TransactionPackage implements Serializable {
 	final double gass_fee;
 	final String hash;
 	final String signature;

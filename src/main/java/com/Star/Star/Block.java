@@ -1,5 +1,6 @@
 package com.Star.Star;
 
+import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -7,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class Block {
+public class Block implements Serializable{
 	
 	PrivateKey sk;
 	BlockBody blockBody;

@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map.Entry;
 
-public class BlockChainList extends PeerToPeer implements Runnable, List {
+public class BlockChainList extends PeerToPeer implements List {
 
 	Block block;
 	List<Block> blockChain;
@@ -24,11 +24,13 @@ public class BlockChainList extends PeerToPeer implements Runnable, List {
 	int size;
 	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
-	private List<Entry<String, Integer>> peers;
+	private List<ServerAddress> peers;
+	private String ip;
+	private int port;
 
-	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, List<Entry<String, Integer>> peers)
-			throws NoSuchAlgorithmException, UnknownHostException, IOException {
-		super(ip, port);
+	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, List<ServerAddress> peers,
+			int maxTpChunckSize, int numPorts) throws Exception {
+		super(ip, port, numPorts);
 		block = new Block(sk, pk, "000000000000000");
 		blockChain = Collections.synchronizedList(new ArrayList<Block>());
 		for (int i = 0; i < difficulty; i++)
@@ -38,7 +40,8 @@ public class BlockChainList extends PeerToPeer implements Runnable, List {
 		this.sk = sk;
 		this.size = 0;
 		this.peers = peers;
-		new Thread(this).start();
+		this.ip = ip;
+		this.port = port;
 	}
 
 	public List<TransactionPackage> getTransactions() {
@@ -129,8 +132,15 @@ public class BlockChainList extends PeerToPeer implements Runnable, List {
 				block = new Block(sk, pk, block.getHash());
 			}
 			this.size++;
-			for (Entry<String, Integer> peer : peers) {
-				this.sendMessage(tp, peer.getKey(), peer.getValue());
+
+			for (int i = 0; i < peers.size(); i++) {
+				ServerAddress peer = peers.get(i);
+				try {
+					this.sendMessage(tp, peer.getIp(), peer.getPort());
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw e;
+				}
 			}
 			return true;
 		} catch (Exception e) {
@@ -141,12 +151,18 @@ public class BlockChainList extends PeerToPeer implements Runnable, List {
 					blockChain.add(tempBlock);
 					block = new Block(sk, pk, tempBlock.getHash());
 				}
+
 				this.size++;
-				for (Entry<String, Integer> peer : peers) {
-					this.sendMessage(tempBlock, peer.getKey(), peer.getValue());
+				for (ServerAddress peer : peers) {
+					try {
+						this.sendMessage(tempBlock, peer.getIp(), peer.getPort());
+					} catch (Exception e2) {
+						e2.printStackTrace();
+					}
 				}
 				return true;
 			} catch (Exception e1) {
+				e1.printStackTrace();
 				return false;
 			}
 		}
@@ -231,39 +247,39 @@ public class BlockChainList extends PeerToPeer implements Runnable, List {
 	}
 
 	@Override
-	public void onRecieveMessage(Object msg) {
-		boolean add;
+	public void onRecieveMessage(Object msg) throws Exception {
 		try {
-			String hash = ((TransactionPackage) msg).getHash();
+			boolean add;
+			String hash;
+			TransactionPackage tp = (TransactionPackage) msg;
+			hash = tp.getHash();
 			if (this.recievedTransactionHashes.contains(hash)) {
 				add = false;
 			} else {
-				this.recievedTransactionHashes.add(hash);
 				add = true;
+				this.recievedTransactionHashes.add(tp.getHash());
+			}
+			if (add) {
+				this.add(tp);
 			}
 		} catch (Exception e) {
 			try {
-				String hash;
-				hash = ((Block) msg).getHash();
+				boolean add;
+				Block block = (Block) msg;
+				String hash = ((Block) msg).getHash();
 				if (this.recievedBlockHashes.contains(hash)) {
 					add = false;
 				} else {
-					this.recievedBlockHashes.add(hash);
+					this.recievedBlockHashes.add(block.getHash());
 					add = true;
 				}
+
+				if (add) {
+					this.add(block);
+				}
 			} catch (Exception e1) {
-				add = (Boolean) null;
+				e1.printStackTrace();
 			}
 		}
-		if (add)
-		this.add(msg);
 	}
-	
-
-	public void run() {
-		try {
-			this.recieveMessage();
-		} catch (Exception e) {}
-	}
-
 }

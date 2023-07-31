@@ -1,18 +1,22 @@
 package com.Star.Star;
 
+import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.UUID;
 
-public class ShellTransaction extends TransactionBody {
+public class ShellTransaction extends TransactionBody  implements Serializable {
 
 	final PublicKey websiteAdr;
 	final String shell;
 	final String website_name;
+	UUID uuid;
 	
 	public ShellTransaction(PublicKey websiteAdr, String shell, String website_name) {
 		this.websiteAdr = websiteAdr;
 		this.shell = shell;
 		this.website_name = website_name;
+		uuid =  new UUID((long) (Math.random()*new Long(0).MAX_VALUE), (long) (Math.random()*new Long(0).MAX_VALUE));
 	}
 	
 	
@@ -27,7 +31,7 @@ public class ShellTransaction extends TransactionBody {
 	}
 	
 	public String getHash() throws NoSuchAlgorithmException {
-		return new RSA().getSHA256(this.shell+this.website_name+new RSA().pkToString(this.websiteAdr));
+		return new RSA().getSHA256(this.shell+this.website_name+new RSA().pkToString(this.websiteAdr)+uuid.toString());
 	}
 
 }

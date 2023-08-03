@@ -1,8 +1,11 @@
 package com.Star.Star;
 
 import java.io.Serializable;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
 public class ShellTransaction extends TransactionBody  implements Serializable {
@@ -19,6 +22,13 @@ public class ShellTransaction extends TransactionBody  implements Serializable {
 		uuid =  new UUID((long) (Math.random()*new Long(0).MAX_VALUE), (long) (Math.random()*new Long(0).MAX_VALUE));
 	}
 	
+	public ShellTransaction(ShellTransaction rhs) throws InvalidKeySpecException, NoSuchAlgorithmException {
+		this.websiteAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.websiteAdr.getEncoded()));
+		this.shell = rhs.shell + "";
+		this.website_name = rhs.website_name + "";
+		uuid = new UUID(rhs.uuid.getMostSignificantBits(), rhs.uuid.getLeastSignificantBits());
+	}
+	
 	
 	@Override
 	public long byteSize() {
@@ -33,5 +43,11 @@ public class ShellTransaction extends TransactionBody  implements Serializable {
 	public String getHash() throws NoSuchAlgorithmException {
 		return new RSA().getSHA256(this.shell+this.website_name+new RSA().pkToString(this.websiteAdr)+uuid.toString());
 	}
+	
+
+	public TransactionBody getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
+		return new ShellTransaction(this);
+	}
+
 
 }

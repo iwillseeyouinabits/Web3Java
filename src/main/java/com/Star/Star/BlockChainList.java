@@ -24,13 +24,13 @@ public class BlockChainList extends PeerToPeer implements List {
 	int size;
 	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
-	private List<ServerAddress> peers;
+	List<ServerAddress> peers;
 	private String ip;
 	private int port;
 
 	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, List<ServerAddress> peers,
-			int maxTpChunckSize, int numPorts) throws Exception {
-		super(ip, port, numPorts);
+			int maxTpChunckSize) throws Exception {
+		super(ip, port, maxTpChunckSize);
 		block = new Block(sk, pk, "000000000000000");
 		blockChain = Collections.synchronizedList(new ArrayList<Block>());
 		for (int i = 0; i < difficulty; i++)
@@ -125,6 +125,7 @@ public class BlockChainList extends PeerToPeer implements List {
 	public boolean add(Object transaction) {
 		try {
 			TransactionPackage tp = (TransactionPackage) transaction;
+			recievedTransactionHashes.add(tp.getHash());
 			block.addTransaction(tp);
 			if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
 				block.signBlock();
@@ -132,34 +133,32 @@ public class BlockChainList extends PeerToPeer implements List {
 				block = new Block(sk, pk, block.getHash());
 			}
 			this.size++;
-
-			for (int i = 0; i < peers.size(); i++) {
-				ServerAddress peer = peers.get(i);
-				try {
-					this.sendMessage(tp, peer.getIp(), peer.getPort());
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw e;
-				}
+//			System.out.println("About to send");
+//			Thread.sleep(1000);
+			try {
+				this.sendMessage(tp, peers);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
 			}
 			return true;
 		} catch (Exception e) {
 			try {
 				Block tempBlock = ((Block) transaction);
+				recievedBlockHashes.add(tempBlock.getHash());
 				if (tempBlock.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
 						&& tempBlock.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
 					blockChain.add(tempBlock);
 					block = new Block(sk, pk, tempBlock.getHash());
 				}
 
-				this.size++;
-				for (ServerAddress peer : peers) {
-					try {
-						this.sendMessage(tempBlock, peer.getIp(), peer.getPort());
-					} catch (Exception e2) {
-						e2.printStackTrace();
-					}
+				this.size += tempBlock.getTransactions().size();
+				try {
+					this.sendMessage(tempBlock, peers);
+				} catch (Exception e2) {
+					e2.printStackTrace();
 				}
+
 				return true;
 			} catch (Exception e1) {
 				e1.printStackTrace();
@@ -257,8 +256,8 @@ public class BlockChainList extends PeerToPeer implements List {
 				add = false;
 			} else {
 				add = true;
-				this.recievedTransactionHashes.add(tp.getHash());
 			}
+//			System.out.println(hash + " " + add + " " + this.recievedTransactionHashes.size());
 			if (add) {
 				this.add(tp);
 			}
@@ -270,7 +269,6 @@ public class BlockChainList extends PeerToPeer implements List {
 				if (this.recievedBlockHashes.contains(hash)) {
 					add = false;
 				} else {
-					this.recievedBlockHashes.add(block.getHash());
 					add = true;
 				}
 

@@ -24,55 +24,23 @@ public class App {
 
 	public static void main(String[] args) throws Exception {
 		int numToRun = 1000;
-		int chunckSize = 5;
-		testBatchRun(numToRun, chunckSize, 3, 100);
+		int chunckSize =20;
+		testBatchRun(numToRun, chunckSize, 5);
 	}
 
-//    public static void testPeerToPeer(int numberOfPeers, int startIP) throws UnknownHostException, IOException, InterruptedException {
-//    	PeerToPeer[] p2ps = new PeerToPeer[numberOfPeers];
-//    	Thread[] threads = new Thread[numberOfPeers];
-//    	for (int i = 0; i < numberOfPeers; i++) {
-//    		System.out.println(i);
-//    		p2ps[i] = new PeerToPeer("127.0.0.1", startIP+i);
-//    		Thread t = new Thread(p2ps[i]);
-//    		t.start();
-//    		threads[i] = t;
-//    	}
-//
-//    	for (int i = 1; i < numberOfPeers; i++) {
-//        	p2ps[i].sendMessage("Hello World! " + i, "127.0.0.1", startIP+i-1);
-//    	}
-//    	for (int i = 1; i < numberOfPeers; i++) {
-//        	p2ps[i].sendMessage("Hello World! " + i, "127.0.0.1", startIP+i-1);
-//    	}
-//    	for (int i = 1; i < numberOfPeers; i++) {
-//        	p2ps[i].sendMessage("Hello World! " + i, "127.0.0.1", startIP+i-1);
-//    	}
-//    	for (int i = 1; i < numberOfPeers; i++) {
-//        	p2ps[i].sendMessage("Hello World! " + i, "127.0.0.1", startIP+i-1);
-//    	}
-//    	Thread.sleep(2000);
-//    	for (int i = 1; i < numberOfPeers; i++) {
-//        	p2ps[i].close();
-//    	}
-//    	for (int i = 0; i < numberOfPeers; i++) {
-//        	threads[i].join();
-//        	System.out.println(i);
-//    	}
-//    }
-
-	public static void testBatchRun(int numToRun, int chunckSize, int numChains, int numPorts) throws Exception {
+	public static void testBatchRun(int numToRun, int chunckSize, int numChains) throws Exception {
 		Thread[] runners = new Thread[numToRun];
 		KeyPair kp = new RSA().generateKeyPair();
-		List<ServerAddress> peers = new ArrayList<ServerAddress>();
+		List<ServerAddress>[] peers = new ArrayList[numChains];
 		for (int i = 0; i < numChains; i++) {
-			peers.add(new ServerAddress("127.0.0.1", 4300 + (i*numPorts)));
+			peers[i] = new ArrayList<ServerAddress>();
+			peers[i].add(new ServerAddress("127.0.0.1", 42069 + ((i + 1) % numChains)));
 		}
 		BlockChainList[] blockChainListsThread = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
-			blockChainListsThread[i] = (new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 4300 + (i*numPorts),
-					peers, chunckSize, numPorts));
+			blockChainListsThread[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
+					peers[i], chunckSize);
 		}
 
 		List[] blockChainLists = new List[numChains];
@@ -123,11 +91,22 @@ public class App {
 		double joinTime = new Date().getTime();
 		// join threads
 		System.out.println("Bingo");
-		while (blockChainLists[0].size() != numToRun) {
+		while (blockChainLists[0].size() < numToRun) {
+			for (BlockChainList bcl: blockChainListsThread ) {
+				System.out.println(bcl.tpChunck.size());
+			}
+			System.out.println(">> " + blockChainLists[0].size());
+
+			for (int i = 0; i < blockChainListsThread.length; i++ ) {
+				blockChainListsThread[i].flush(peers[i]);
+			}
+			Thread.sleep(1000);
 		}
-		executor.shutdown();
-		System.out.println("JOINED!");
+//		Thread.sleep(5000);
+		int numProcessed = blockChainLists[0].size();
 		double finishTime = new Date().getTime();
+//		executor.shutdown();
+		System.out.println("JOINED!");
 
 		for (int i = 0; i < blockChainListsThread.length; i++) {
 			blockChainListsThread[i].close();
@@ -148,6 +127,6 @@ public class App {
 		System.out.println("numVerifiedSig: " + blockChainLists[0].size() + " V.S. " + numVerified);
 		System.out.println("Launch in: " + (joinTime - launchTime) / 1000.0);
 		System.out.println("Run in: " + (finishTime - joinTime) / 1000.0);
-		System.out.println("TPS: " + (numToRun / ((finishTime - joinTime) / 1000.0)));
+		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));
 	}
 }

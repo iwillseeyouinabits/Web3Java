@@ -9,12 +9,19 @@ public class TransactionPackage implements Serializable {
 	final String hash;
 	final String signature;
 	final TransactionBody transactionBody;
-	
+
 	public TransactionPackage(TransactionBody transactionBody, PrivateKey signer) throws Exception {
 		this.gass_fee = transactionBody.byteSize()/1000000.0;
 		this.hash = transactionBody.getHash();
 		this.signature = new RSA().sign(this.hash+"", signer);
 		this.transactionBody = transactionBody;
+	}
+	
+	public TransactionPackage(TransactionPackage rhs) throws Exception {
+		this.gass_fee = rhs.gass_fee;
+		this.hash = rhs.hash+"";
+		this.signature = rhs.signature + "";
+		this.transactionBody = rhs.transactionBody.getDeepCopy();
 	}
 	
 	public boolean verifySigner() throws Exception {
@@ -29,5 +36,10 @@ public class TransactionPackage implements Serializable {
 	
 	public String getHash() {
 		return this.hash;
+	}
+	
+	public boolean equals(Object o) {
+		TransactionPackage rhs = (TransactionPackage) o;
+		return this.hash.equals(rhs.getHash());
 	}
 }

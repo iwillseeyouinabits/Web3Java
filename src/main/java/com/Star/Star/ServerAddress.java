@@ -1,6 +1,8 @@
 package com.Star.Star;
 
-public class ServerAddress {
+import java.io.Serializable;
+
+public class ServerAddress implements Serializable {
 	private String ip;
 	private int port;
 	

@@ -11,7 +11,7 @@ public class TCPPackage implements Serializable {
 	private ServerAddress fromPeer;
 	private boolean isBlock;
 	private Block block = null;
-	private List<TransactionPackage> tp = null;
+	private TransactionPackage tp = null;
 	private String hash;
 	
 	public TCPPackage(ServerAddress fromPeer, Block block) throws Exception {
@@ -21,13 +21,10 @@ public class TCPPackage implements Serializable {
 		this.isBlock = true;
 	}
 	
-	public TCPPackage(ServerAddress fromPeer, List<TransactionPackage> tp) throws Exception {
+	public TCPPackage(ServerAddress fromPeer, TransactionPackage tp) throws Exception {
 		this.fromPeer = fromPeer;
 		this.tp = tp;
-		this.hash = tp.get(0).getHash();
-		for(int i = 1; i < tp.size(); i++) {
-			this.hash = new RSA().getSHA256(hash+tp.get(i));
-		}
+		this.hash = tp.getHash();
 		this.isBlock = false;
 	}
 	
@@ -41,5 +38,9 @@ public class TCPPackage implements Serializable {
 	
 	public String getHash() {
 		return this.hash;
+	}
+	
+	public ServerAddress getPeer() {
+		return this.fromPeer;
 	}
 }

@@ -23,25 +23,32 @@ import java.util.concurrent.TimeUnit;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 1000;
-		int chunckSize =20;
-		testBatchRun(numToRun, chunckSize, 5);
+		int numToRun = 100000;
+		int numChains = 2;
+		testBatchRun(numToRun, numChains);
 	}
 
-	public static void testBatchRun(int numToRun, int chunckSize, int numChains) throws Exception {
+	public static void testBatchRun(int numToRun, int numChains) throws Exception {
 		Thread[] runners = new Thread[numToRun];
 		KeyPair kp = new RSA().generateKeyPair();
-		List<ServerAddress>[] peers = new ArrayList[numChains];
-		for (int i = 0; i < numChains; i++) {
-			peers[i] = new ArrayList<ServerAddress>();
-			peers[i].add(new ServerAddress("127.0.0.1", 42069 + ((i + 1) % numChains)));
+		ServerAddress[] peers = new ServerAddress[numChains];
+		if (numChains > 1) {
+			for (int i = 0; i < numChains; i++) {
+				peers[i] = new ServerAddress("127.0.0.1", 42069 + ((i + 1) % numChains));
+			}
 		}
 		BlockChainList[] blockChainListsThread = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
 			blockChainListsThread[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
-					peers[i], chunckSize);
+					peers[i]);
 		}
+
+		if (numChains > 1)
+			for (int i = 0; i < numChains; i++) {
+
+				blockChainListsThread[i].connectToPeer();
+			}
 
 		List[] blockChainLists = new List[numChains];
 		for (int i = 0; i < numChains; i++) {
@@ -92,25 +99,14 @@ public class App {
 		// join threads
 		System.out.println("Bingo");
 		while (blockChainLists[0].size() < numToRun) {
-			for (BlockChainList bcl: blockChainListsThread ) {
-				System.out.println(bcl.tpChunck.size());
-			}
-			System.out.println(">> " + blockChainLists[0].size());
-
-			for (int i = 0; i < blockChainListsThread.length; i++ ) {
-				blockChainListsThread[i].flush(peers[i]);
-			}
 			Thread.sleep(1000);
+			System.out.println(">> " + blockChainListsThread[0].size());
 		}
-//		Thread.sleep(5000);
 		int numProcessed = blockChainLists[0].size();
 		double finishTime = new Date().getTime();
-//		executor.shutdown();
+		executor.shutdown();
 		System.out.println("JOINED!");
 
-		for (int i = 0; i < blockChainListsThread.length; i++) {
-			blockChainListsThread[i].close();
-		}
 		for (int i = 0; i < runners.length; i++) {
 			runners[i].join();
 		}

@@ -17,8 +17,8 @@ public class BlockTesterThreaded implements Runnable {
 	}
 
 	public void run() {
-		int index = (int)(this.tps.size()-1);
-		TransactionPackage tp = tps.remove(index);
-		this.blockChain[index%this.blockChain.length].add(tp);
+		int index = (int)(this.tps.size());
+		TransactionPackage tp = tps.remove(0);
+		this.blockChain[(int) (index%blockChain.length)].add(tp);
 	}
 }

@@ -1,11 +1,13 @@
 package com.Star.Star;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.ServerSocket;
@@ -14,140 +16,143 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class PeerToPeer implements Runnable {
-	private ServerSocket clientSocket;
-	private ObjectInputStream in;
-	List<TransactionPackage> tpChunck;
-	private int chunckSize;
+public abstract class PeerToPeer {
 	private String ip;
 	private int port;
-	Thread t;
-	HashMap<String, TCPPackage> sentNotVerified = new HashMap<String, TCPPackage>();
+	private ServerAddress peer;
+	private ServerSocket serverSocket;
+	private Socket sendSocket;
+	private ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
+	private boolean close = false;
 
-	public PeerToPeer(String ip, int port, int chunckSize) throws Exception {
-		clientSocket = new ServerSocket(port);
-		this.chunckSize = chunckSize;
-		tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+	public PeerToPeer(String ip, int port, ServerAddress peer) throws Exception {
 		this.ip = ip;
 		this.port = port;
-		recieveMessage();
-	}
+		this.peer = peer;
+		this.serverSocket = new ServerSocket(port);
 
-	public void sendMessage(Object msg, List<ServerAddress> peers) throws IOException {
-		ArrayList<TransactionPackage> tpChunckSend = null;
-		try {
-			TransactionPackage tp = (TransactionPackage) msg;
-			tpChunck.add(tp);
-			if (tpChunck.size() >= this.chunckSize) {
-				tpChunckSend = new ArrayList<TransactionPackage>();
-				for (int k = 0; k < tpChunck.size(); k++) {
-					TransactionPackage tpSend = tpChunck.remove(0);
-					tpChunckSend.add(new TransactionPackage(tpSend));
-				}
-				TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tpChunckSend);
-				this.sendTransaction(peers, tcpPack);
-			}
-		} catch (ClassCastException e) {
-			try {
-				Block block = (Block) msg;
-				TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
-				this.sendTransaction(peers, tcpPack);
-			} catch (Exception e2) {
-				e2.printStackTrace();
-			}
-		} catch (ConnectException e2) {
-			tpChunck.addAll(tpChunckSend);
-		} catch (Exception e2) {
-			e2.printStackTrace();
-		}
-	}
-	
-	private void sendTransaction(List<ServerAddress> peers, TCPPackage tcpPack) throws IOException {
-		for (int i = 0; i < peers.size(); i++) {
-			if (!peers.get(i).getIp().equals(this.ip) || peers.get(i).getPort() != this.port) {
-				OutputStream os = new Socket(peers.get(i).getIp(), peers.get(i).getPort()).getOutputStream();
-				ObjectOutputStream outSocket = new ObjectOutputStream(os);
-				outSocket.writeObject(tcpPack);
-				outSocket.flush();
-				outSocket.close();
-			}
-		}
-	}
-
-	public void recieveMessage() throws Exception {
-		this.t = new Thread(new Runnable() {
-			@Override
+		Thread recv = new Thread(new Runnable() {
 			public void run() {
 				try {
-					recieveMessageHelper();
-				} catch (Exception e) {
-//					e.printStackTrace();
+					start();
+				} catch (IOException e) {
 				}
 			}
 		});
-		t.start();
+		recv.start();
 	}
 
-	public void recieveMessageHelper() throws Exception {
-		while (true) {
-			Socket s = clientSocket.accept();
-			ObjectInputStream in = new ObjectInputStream(s.getInputStream());
-			try {
-				Object msg = in.readObject();
-				TCPPackage tcpPack = (TCPPackage) msg;
+	public void connectToPeer() {
+		try {
+			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Thread sendLoop = new Thread(new Runnable() {
+			public void run() {
 				try {
-					List<TransactionPackage> recv = (List<TransactionPackage>) tcpPack.getObject();
-//					System.out.println("recieved");
-					for (TransactionPackage tp : recv) {
-						onRecieveMessage(tp);
-					}
+					loopSend();
 				} catch (Exception e) {
-					onRecieveMessage((Block) tcpPack.getObject());
 				}
-			} catch (Exception e) {
-				s.close();
-				in.close();
-				e.printStackTrace();
+			}
+		});
+		sendLoop.start();
+	}
+
+	public void addToSend(Object msg) {
+		TCPPackage tcpPack = null;
+		try {
+			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (TransactionPackage) msg);
+		} catch (Exception e) {
+			try {
+				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
+			} catch (Exception e1) {
+				e1.printStackTrace();
 			}
 		}
+		this.toSend.put(tcpPack.getHash(), tcpPack);
+//		System.out.println(toSend.size() + " " + port);
 	}
 
-	public void flush(List<ServerAddress> peers) throws Exception {
-		ArrayList<TransactionPackage> tpChunckSend = new ArrayList<TransactionPackage>();
-		while (!tpChunck.isEmpty()) {
-			try {
-				TransactionPackage tpSend = tpChunck.remove(0);
-				tpChunckSend.add(new TransactionPackage(tpSend));
-			} catch (Exception e) {
+	public void loopSend() throws InterruptedException {
+		ObjectOutputStream out = null;
+		ObjectInputStream in = null;
+		try {
+			out = new ObjectOutputStream(sendSocket.getOutputStream());
+			in = new ObjectInputStream(sendSocket.getInputStream());
+		} catch (Exception e) {
+			loopSend();
+			return;
+		}
 
+		while (!this.close) {
+			if (this.toSend.size() > 5000) {
+				Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
+				while (tcpIterator.hasNext()) {
+					try {
+						TCPPackage tcpPack = tcpIterator.next().getValue();
+						out.writeObject(tcpPack);
+						String hash = (String) in.readObject();
+						this.toSend.remove(hash);
+					} catch (Exception e) {
+//						System.out.println("FAIL SEND");
+						e.printStackTrace();
+					}
+				}
 			}
 		}
 		try {
-			if (tpChunckSend.size() > 0) {
-				TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tpChunckSend);
-				this.sendTransaction(peers, tcpPack);
-			}
-		} catch (ConnectException e2) {
-//			System.out.println("Failed To Send");
-			tpChunck.addAll(tpChunckSend);
-
+			out.close();
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+	}
+
+	public void start() throws IOException {
+		new Recieve(this.serverSocket.accept()).start();
+	}
+
+	public void close() {
+		this.close = true;
 	}
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
-	public void close() throws IOException {
-		t.stop();
-		clientSocket.close();
-	}
+	public class Recieve extends Thread {
+		private TCPPackage tcpPack = null;
+		private Socket clientSocket;
 
-	public void run() {
-		try {
-			recieveMessage();
-		} catch (Exception e) {
-			e.printStackTrace();
+		public Recieve(Socket socket) {
+			clientSocket = socket;
+		}
+
+		public void run() {
+			try {
+				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+				while (!close) {
+					Object objRecieved = in.readObject();
+					tcpPack = (TCPPackage) objRecieved;
+					onRecieveMessage(tcpPack.getObject());
+					String hash = tcpPack.getHash();
+					out.writeObject(hash);
+				}
+				in.close();
+				out.close();
+				clientSocket.close();
+//				System.out.println("recv");
+				onRecieveMessage(tcpPack.getObject());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

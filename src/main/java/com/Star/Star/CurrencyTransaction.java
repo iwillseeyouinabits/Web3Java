@@ -8,7 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
-public class CurrencyTransaction extends TransactionBody  implements Serializable{
+public class CurrencyTransaction extends Transaction implements Serializable{
 
 	final PublicKey senderAdr;
 	final PublicKey recipientAdr;
@@ -47,7 +47,7 @@ public class CurrencyTransaction extends TransactionBody  implements Serializabl
 	}
 
 
-	public TransactionBody getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
+	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
 		return new CurrencyTransaction(this);
 	}
 

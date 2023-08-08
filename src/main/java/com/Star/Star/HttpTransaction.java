@@ -8,7 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
-public class HttpTransaction extends TransactionBody  implements Serializable {
+public class HttpTransaction extends Transaction implements Serializable {
 
 	final PublicKey clientAdr;
 	final PublicKey websiteAdr;
@@ -49,7 +49,7 @@ public class HttpTransaction extends TransactionBody  implements Serializable {
 		return new RSA().getSHA256(new RSA().pkToString(this.clientAdr)+new RSA().pkToString(this.websiteAdr)+new RSA().pkToString(this.hostAdr)+this.postJson+uuid.toString());
 	}
 	
-	public TransactionBody getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
+	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
 		return new HttpTransaction(this);
 	}
 

@@ -8,7 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
-public class ShellTransaction extends TransactionBody  implements Serializable {
+public class ShellTransaction extends Transaction implements Serializable {
 
 	final PublicKey websiteAdr;
 	final String shell;
@@ -45,7 +45,7 @@ public class ShellTransaction extends TransactionBody  implements Serializable {
 	}
 	
 
-	public TransactionBody getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
+	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
 		return new ShellTransaction(this);
 	}
 

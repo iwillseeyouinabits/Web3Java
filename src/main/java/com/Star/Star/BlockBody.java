@@ -1,5 +1,7 @@
 package com.Star.Star;
 
+import lombok.Data;
+
 import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -8,19 +10,20 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+@Data
 public class BlockBody implements Serializable {
 	final String prevBlockHash;
-	final PublicKey minerAdress;
+	final PublicKey minerPk;
 	long timestamp;
 	List<TransactionPackage> block;
 	String hashableToken;
 
-	public BlockBody(String prevBlockHash, PublicKey minerAdress) throws NoSuchAlgorithmException {
+	public BlockBody(String prevBlockHash, PublicKey minerPk) throws NoSuchAlgorithmException {
 		this.prevBlockHash = prevBlockHash;
-		this.minerAdress = minerAdress;
+		this.minerPk = minerPk;
 		this.timestamp = new Date().getTime() / 1000 / 60;
 		this.block = Collections.synchronizedList(new ArrayList<TransactionPackage>());
-		hashableToken = this.prevBlockHash + new RSA().pkToString(this.minerAdress);
+		hashableToken = this.prevBlockHash + new RSA().pkToString(this.minerPk);
 	}
 
 	public void addTransaction(TransactionPackage transaction) throws NoSuchAlgorithmException {
@@ -33,7 +36,7 @@ public class BlockBody implements Serializable {
 	}
 	
 	public String getHashableToken() throws NoSuchAlgorithmException {
-		String hashableToken = this.prevBlockHash + new RSA().getSHA256(new RSA().pkToString(this.minerAdress));
+		String hashableToken = this.prevBlockHash + new RSA().getSHA256(new RSA().pkToString(this.minerPk));
 		for (TransactionPackage tp : this.block) {
 			hashableToken += tp.getHash();
 		}

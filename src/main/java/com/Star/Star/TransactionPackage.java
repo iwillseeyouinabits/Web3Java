@@ -19,14 +19,14 @@ public class TransactionPackage implements Serializable {
 
 	public TransactionPackage(TransactionPackage rhs) throws Exception {
 		this.gass_fee = rhs.gass_fee;
-		this.hash = rhs.hash+"";
+		this.hash = rhs.hash + "";
 		this.signature = rhs.signature + "";
 		this.transaction = rhs.transaction.getDeepCopy();
 	}
 
 	public boolean verifySigner() throws Exception {
 		PublicKey signer = this.transaction.getSigner();
-		return new RSA().verify(this.hash+"", this.signature, signer);
+		return RSA.verify(this.hash + "", this.signature, signer);
 	}
 
 	public PublicKey getSigner() {

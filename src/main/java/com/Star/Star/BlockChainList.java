@@ -1,10 +1,14 @@
 package com.Star.Star;
 
+import com.Star.Star.services.ValidationService;
+import lombok.Data;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,6 +25,7 @@ public class BlockChainList extends PeerToPeer implements List {
 	int difficultyNum;
 	PublicKey pk;
 	PrivateKey sk;
+	ValidationService validationService;
 	int size;
 	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
@@ -122,41 +127,46 @@ public class BlockChainList extends PeerToPeer implements List {
 		return array;
 	}
 
-	public boolean add(Object transaction) {
-		try {
-//			System.out.println("sending");
-			TransactionPackage tp = (TransactionPackage) transaction;
-			recievedTransactionHashes.add(tp.getHash());
-			block.addTransaction(tp);
-			if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
-				block.signBlock();
-				blockChain.add(block);
-				block = new Block(sk, pk, block.getHash());
-			}
-			this.size++;
-			if (peer != null)
-				addToSend(tp);
-			return true;
-		} catch (Exception e) {
-			try {
-				Block tempBlock = ((Block) transaction);
-				recievedBlockHashes.add(tempBlock.getHash());
-				if (tempBlock.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
-						&& tempBlock.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
-					blockChain.add(tempBlock);
-					block = new Block(sk, pk, tempBlock.getHash());
-				}
-
-				this.size += tempBlock.getTransactions().size();
-				if (peer != null)
-					addToSend(tempBlock);
-				return true;
-			} catch (Exception e1) {
-				e1.printStackTrace();
-				return false;
-			}
-		}
+	public boolean add(TransactionPackage transactionPackage) {
+        try {
+            recievedTransactionHashes.add(transactionPackage.getHash());
+            //todo add verification here
+            validationService.validate(transactionPackage);
+            block.addTransaction(transactionPackage);
+            if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
+                block.signBlock();
+                blockChain.add(block);
+                block = new Block(sk, pk, block.getHash());
+            }
+            this.size++;
+            if (peer != null)
+                addToSend(transactionPackage);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+        return true;
 	}
+
+    public boolean add(Block block) {
+        try {
+            validationService.validate(block);
+            recievedBlockHashes.add(block.getHash());
+            if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
+                    && block.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
+                blockChain.add(block);
+                this.block = new Block(sk, pk, block.getHash());
+            }
+
+            this.size += block.getTransactions().size();
+            if (peer != null)
+                addToSend(block);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+        return true;
+    }
 
 	public int getHight() {
 		return blockChain.size();

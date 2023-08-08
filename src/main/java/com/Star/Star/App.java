@@ -1,5 +1,7 @@
 package com.Star.Star;
 
+import com.Star.Star.services.ValidationService;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -52,7 +54,7 @@ public class App {
 		ExecutorService executor = Executors.newFixedThreadPool(30);
 
 		/**
-		 * Initiating keys and generating transactions
+		 * Initiating keys
 		 */
 		// gen public keys
 		KeyPair keys1 = null;
@@ -65,7 +67,9 @@ public class App {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-
+		/**
+		 * generating test transactions
+		 */
 		for (int i = 0; i < numToRun; i++) {
 			Transaction genericTransaction;
 			if (Math.random() > 2.0 / 3.0) {
@@ -110,8 +114,9 @@ public class App {
 			runners[i].join();
 		}
 		/**
-		 * "randomly" veryify block signatures
+		 * "randomly" verify block signatures
 		 */
+		final ValidationService validationService = new ValidationService();
 		int numVerified = numToRun;
 		for (int i = 1; i < syncedBlockChainLists[0].size(); i *= 2) {
 			if (!((TransactionPackage) syncedBlockChainLists[0].get(i)).verifySigner()) {

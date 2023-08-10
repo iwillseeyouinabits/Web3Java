@@ -27,15 +27,13 @@ public abstract class PeerToPeer {
 		this.peer = peer;
 		this.serverSocket = new ServerSocket(port);
 
-		Thread recv = new Thread(new Runnable() {
-			public void run() {
-				try {
-					start();
-				} catch (IOException e) {
-					System.err.println(e.getMessage());
-				}
-			}
-		});
+		Thread recv = new Thread(() -> {
+            try {
+                start();
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+        });
 		recv.start();
 	}
 
@@ -46,15 +44,13 @@ public abstract class PeerToPeer {
 			System.err.println(e.getMessage());
 		}
 
-		Thread sendLoop = new Thread(new Runnable() {
-			public void run() {
-				try {
-					loopSend();
-				} catch (Exception e) {
-					System.err.println(e.getMessage());
-				}
-			}
-		});
+		Thread sendLoop = new Thread(() -> {
+            try {
+                loopSend();
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        });
 		sendLoop.start();
 	}
 
@@ -72,9 +68,9 @@ public abstract class PeerToPeer {
 		this.toSend.put(tcpPack.getHash(), tcpPack);
 	}
 
-	public void loopSend() throws InterruptedException {
-		ObjectOutputStream out = null;
-		ObjectInputStream in = null;
+	public void loopSend(){
+		ObjectOutputStream out;
+		ObjectInputStream in;
 		try {
 			out = new ObjectOutputStream(sendSocket.getOutputStream());
 			in = new ObjectInputStream(sendSocket.getInputStream());

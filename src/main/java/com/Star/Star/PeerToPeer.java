@@ -1,27 +1,17 @@
 package com.Star.Star;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Peer to peer code for blockchain
+ */
 public abstract class PeerToPeer {
 	private String ip;
 	private int port;
@@ -120,15 +110,11 @@ public abstract class PeerToPeer {
 		new Recieve(this.serverSocket.accept()).start();
 	}
 
-	public void close() {
-		this.close = true;
-	}
-
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
 	public class Recieve extends Thread {
 		private TCPPackage tcpPack = null;
-		private Socket clientSocket;
+		private final Socket clientSocket;
 
 		public Recieve(Socket socket) {
 			clientSocket = socket;
@@ -151,6 +137,7 @@ public abstract class PeerToPeer {
 //				System.out.println("recv");
 				onRecieveMessage(tcpPack.getObject());
 			} catch (Exception e) {
+				System.err.println(e.getMessage());
 				e.printStackTrace();
 			}
 		}

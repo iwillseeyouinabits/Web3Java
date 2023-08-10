@@ -1,5 +1,6 @@
 package com.Star.Star;
 
+import com.Star.Star.services.RSAService;
 import com.Star.Star.services.ValidationService;
 
 import java.security.KeyPair;
@@ -21,7 +22,7 @@ public class App {
 
 	public static void testBatchRun(int numToRun, int numChains) throws Exception {
 		Thread[] runners = new Thread[numToRun];
-		KeyPair kp = new RSA().generateKeyPair();
+		KeyPair kp = new RSAService().generateKeyPair();
 		ServerAddress[] peers = new ServerAddress[numChains];
 		if (numChains > 1) {
 			for (int i = 0; i < numChains; i++) {
@@ -29,9 +30,7 @@ public class App {
 			}
 		}
 
-		/**
-		 * Initiating synchronised blockchains for each peer
-		 */
+		//Initiating synchronised blockchains for each peer
 		BlockChainList[] unsyncedBlockChainLists = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
@@ -45,9 +44,9 @@ public class App {
 				unsyncedBlockChainLists[i].connectToPeer();
 			}
 
-		BlockChainList[] syncedBlockChainLists = new BlockChainList[numChains];
+		List[] syncedBlockChainLists = new List[numChains];
 		for (int i = 0; i < numChains; i++) {
-			syncedBlockChainLists[i] = (BlockChainList) Collections.synchronizedList(unsyncedBlockChainLists[i]);
+			syncedBlockChainLists[i] = Collections.synchronizedList(unsyncedBlockChainLists[i]);
 		}
 
 		List<TransactionPackage> syncedTransactionPackages = Collections.synchronizedList(new ArrayList<TransactionPackage>());
@@ -61,9 +60,9 @@ public class App {
 		KeyPair keys2 = null;
 		KeyPair keys3 = null;
 		try {
-			keys1 = new RSA().generateKeyPair();
-			keys2 = new RSA().generateKeyPair();
-			keys3 = new RSA().generateKeyPair();
+			keys1 = new RSAService().generateKeyPair();
+			keys2 = new RSAService().generateKeyPair();
+			keys3 = new RSAService().generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}

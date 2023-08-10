@@ -1,22 +1,19 @@
 package com.Star.Star;
 
-import com.Star.Star.services.ValidationService;
-import lombok.Data;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map.Entry;
 
+import static com.Star.Star.services.ValidationService.validate;
+
+/**
+ * Data structure that represents single blockchain
+ */
 public class BlockChainList extends PeerToPeer implements List {
 
 	Block block;
@@ -25,7 +22,6 @@ public class BlockChainList extends PeerToPeer implements List {
 	int difficultyNum;
 	PublicKey pk;
 	PrivateKey sk;
-	ValidationService validationService;
 	int size;
 	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
@@ -88,7 +84,6 @@ public class BlockChainList extends PeerToPeer implements List {
 			}
 
 			public TransactionPackage next() {
-				TransactionPackage tp;
 				if (!this.hasNext()) {
 					throw new IndexOutOfBoundsException("Ran out of bounds");
 				} else if (blockI + 1 < curBlock.getTransactions().size()) {
@@ -127,11 +122,21 @@ public class BlockChainList extends PeerToPeer implements List {
 		return array;
 	}
 
-	public boolean add(TransactionPackage transactionPackage) {
+	@Override
+	public boolean add(Object object) {
+		if(object instanceof TransactionPackage) {
+			return this.addTransactionPackage((TransactionPackage) object);
+		} else
+			return this.addBlock((Block) object);
+	}
+
+	public boolean addTransactionPackage(TransactionPackage transactionPackage) {
         try {
             recievedTransactionHashes.add(transactionPackage.getHash());
             //todo add verification here
-            validationService.validate(transactionPackage);
+            if(!validate(transactionPackage)) {
+				throw new Exception("Validation Failed");
+			};
             block.addTransaction(transactionPackage);
             if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
                 block.signBlock();
@@ -148,9 +153,9 @@ public class BlockChainList extends PeerToPeer implements List {
         return true;
 	}
 
-    public boolean add(Block block) {
+    public boolean addBlock(Block block) {
         try {
-            validationService.validate(block);
+            validate(blockChain.get(blockChain.size()), block);
             recievedBlockHashes.add(block.getHash());
             if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
                     && block.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
@@ -168,7 +173,7 @@ public class BlockChainList extends PeerToPeer implements List {
         return true;
     }
 
-	public int getHight() {
+	public int getHeight() {
 		return blockChain.size();
 	}
 

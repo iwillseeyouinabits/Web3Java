@@ -7,10 +7,10 @@ import java.util.List;
  * Process to test single threads acceptance of a transaction
  */
 public class BlockTesterThreaded implements Runnable {
-	BlockChainList[] blockChain;
+	List[] blockChain;
 	List<TransactionPackage> transactionPackages;
 	
-	public BlockTesterThreaded(BlockChainList[] blockChain, List<TransactionPackage> transactionPackages) {
+	public BlockTesterThreaded(List[] blockChain, List<TransactionPackage> transactionPackages) {
 		this.blockChain = blockChain;
 		this.transactionPackages = Collections.synchronizedList(transactionPackages);
 	}

@@ -12,6 +12,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>20</maven.compiler.source>
+    <maven.compiler.target>20</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -22,22 +24,9 @@
       <scope>test</scope>
     </dependency>
       <dependency>
-          <groupId>org.projectlombok</groupId>
-          <artifactId>lombok</artifactId>
-          <version>1.18.26</version>
-          <scope>compile</scope>
+          <groupId>org.json</groupId>
+          <artifactId>json</artifactId>
+          <version>20210307</version>
       </dependency>
   </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

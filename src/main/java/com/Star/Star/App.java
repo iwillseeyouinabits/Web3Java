@@ -52,23 +52,19 @@ public class App {
 		List<TransactionPackage> syncedTransactionPackages = Collections.synchronizedList(new ArrayList<TransactionPackage>());
 		ExecutorService executor = Executors.newFixedThreadPool(30);
 
-		/**
-		 * Initiating keys
-		 */
-		// gen public keys
+		//Initiating keys
 		KeyPair keys1 = null;
 		KeyPair keys2 = null;
 		KeyPair keys3 = null;
 		try {
-			keys1 = new RSAService().generateKeyPair();
-			keys2 = new RSAService().generateKeyPair();
-			keys3 = new RSAService().generateKeyPair();
+			keys1 = RSAService.generateKeyPair();
+			keys2 = RSAService.generateKeyPair();
+			keys3 = RSAService.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-		/**
-		 * generating test transactions
-		 */
+
+		//generating test transactions
 		for (int i = 0; i < numToRun; i++) {
 			Transaction genericTransaction;
 			if (Math.random() > 2.0 / 3.0) {
@@ -87,9 +83,7 @@ public class App {
 			}
 		}
 
-		/**
-		 * testing tps for processing transactions
-		 */
+		//testing tps for processing transactions
 		BlockTesterThreaded btt = new BlockTesterThreaded(syncedBlockChainLists, syncedTransactionPackages);
 		long launchTime = new Date().getTime();
 		System.out.println("Initiating Thread Tests");
@@ -98,6 +92,7 @@ public class App {
 			executor.submit(runners[i]);
 		}
 		double joinTime = new Date().getTime();
+
 		// join threads
 		System.out.println("Bingo");
 		while (syncedBlockChainLists[0].size() < numToRun) {
@@ -112,10 +107,8 @@ public class App {
 		for (int i = 0; i < runners.length; i++) {
 			runners[i].join();
 		}
-		/**
-		 * "randomly" verify block signatures
-		 */
-		final ValidationService validationService = new ValidationService();
+
+		//"randomly" verify block signatures
 		int numVerified = numToRun;
 		for (int i = 1; i < syncedBlockChainLists[0].size(); i *= 2) {
 			if (!((TransactionPackage) syncedBlockChainLists[0].get(i)).verifySigner()) {

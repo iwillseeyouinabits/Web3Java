@@ -18,11 +18,10 @@ import javax.crypto.Cipher;
  */
 public class RSAService {
 
-	public KeyPair generateKeyPair() throws NoSuchAlgorithmException {
+	public static KeyPair generateKeyPair() throws NoSuchAlgorithmException {
 	    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
 	    generator.initialize(2048, new SecureRandom());
-	    KeyPair pair = generator.generateKeyPair();
-	    return pair;
+	    return generator.generateKeyPair();
 	}
 	
 	public static String pkToString(PublicKey pk) {

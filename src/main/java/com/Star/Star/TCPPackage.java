@@ -1,19 +1,17 @@
 package com.Star.Star;
 
 import java.io.Serializable;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
+/**
+ * Wrapper class to allow for sending both transactions and blocks
+ */
 public class TCPPackage implements Serializable {
-	private ServerAddress fromPeer;
-	private boolean isBlock;
+	private final ServerAddress fromPeer;
+	private final boolean isBlock;
 	private Block block = null;
 	private TransactionPackage tp = null;
-	private String hash;
-	
+	private final String hash;
+
 	public TCPPackage(ServerAddress fromPeer, Block block) throws Exception {
 		this.fromPeer = fromPeer;
 		this.block = block;
@@ -21,7 +19,7 @@ public class TCPPackage implements Serializable {
 		this.isBlock = true;
 	}
 	
-	public TCPPackage(ServerAddress fromPeer, TransactionPackage tp) throws Exception {
+	public TCPPackage(ServerAddress fromPeer, TransactionPackage tp) {
 		this.fromPeer = fromPeer;
 		this.tp = tp;
 		this.hash = tp.getHash();
@@ -38,9 +36,5 @@ public class TCPPackage implements Serializable {
 	
 	public String getHash() {
 		return this.hash;
-	}
-	
-	public ServerAddress getPeer() {
-		return this.fromPeer;
 	}
 }

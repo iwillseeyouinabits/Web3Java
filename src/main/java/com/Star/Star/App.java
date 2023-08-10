@@ -1,25 +1,17 @@
 package com.Star.Star;
 
-import java.io.IOException;
-import java.lang.instrument.Instrumentation;
-import java.net.UnknownHostException;
+import com.Star.Star.services.RSAService;
+import com.Star.Star.services.ValidationService;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
-/**
- * Hello world!
- *
- */
 public class App {
 
 	public static void main(String[] args) throws Exception {
@@ -30,79 +22,84 @@ public class App {
 
 	public static void testBatchRun(int numToRun, int numChains) throws Exception {
 		Thread[] runners = new Thread[numToRun];
-		KeyPair kp = new RSA().generateKeyPair();
+		KeyPair kp = new RSAService().generateKeyPair();
 		ServerAddress[] peers = new ServerAddress[numChains];
 		if (numChains > 1) {
 			for (int i = 0; i < numChains; i++) {
 				peers[i] = new ServerAddress("127.0.0.1", 42069 + ((i + 1) % numChains));
 			}
 		}
-		BlockChainList[] blockChainListsThread = new BlockChainList[numChains];
+
+		//Initiating synchronised blockchains for each peer
+		BlockChainList[] unsyncedBlockChainLists = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
-			blockChainListsThread[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
+			unsyncedBlockChainLists[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
 					peers[i]);
 		}
 
 		if (numChains > 1)
 			for (int i = 0; i < numChains; i++) {
 
-				blockChainListsThread[i].connectToPeer();
+				unsyncedBlockChainLists[i].connectToPeer();
 			}
 
-		List[] blockChainLists = new List[numChains];
+		List[] syncedBlockChainLists = new List[numChains];
 		for (int i = 0; i < numChains; i++) {
-			blockChainLists[i] = Collections.synchronizedList(blockChainListsThread[i]);
+			syncedBlockChainLists[i] = Collections.synchronizedList(unsyncedBlockChainLists[i]);
 		}
 
-		List<TransactionPackage> tps = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+		List<TransactionPackage> syncedTransactionPackages = Collections.synchronizedList(new ArrayList<TransactionPackage>());
 		ExecutorService executor = Executors.newFixedThreadPool(30);
 
-		// gen public keys
+		//Initiating keys
 		KeyPair keys1 = null;
 		KeyPair keys2 = null;
 		KeyPair keys3 = null;
 		try {
-			keys1 = new RSA().generateKeyPair();
-			keys2 = new RSA().generateKeyPair();
-			keys3 = new RSA().generateKeyPair();
+			keys1 = RSAService.generateKeyPair();
+			keys2 = RSAService.generateKeyPair();
+			keys3 = RSAService.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
 
-		// gen transaction
+		//generating test transactions
 		for (int i = 0; i < numToRun; i++) {
-			TransactionBody tb;
+			Transaction genericTransaction;
 			if (Math.random() > 2.0 / 3.0) {
-				tb = new HttpTransaction(keys1.getPublic(), keys2.getPublic(), keys3.getPublic(),
+				genericTransaction = new HttpTransaction(keys1.getPublic(), keys2.getPublic(), keys3.getPublic(),
 						"{'Hello': 'World!'}");
 			} else if (Math.random() > 1.0 / 2.0) {
-				tb = new CurrencyTransaction(keys1.getPublic(), keys2.getPublic(), 5);
+				genericTransaction = new CurrencyTransaction(keys1.getPublic(), keys2.getPublic(), 5);
 			} else {
-				tb = new ShellTransaction(keys1.getPublic(), "echo 'HELLO WORLD'", "Ride Share");
+				genericTransaction = new ShellTransaction(
+						keys1.getPublic(), "echo 'HELLO WORLD'", "Ride Share");
 			}
-			TransactionPackage tp = new TransactionPackage(tb, keys1.getPrivate());
-			tps.add(tp);
+			TransactionPackage tp = new TransactionPackage(genericTransaction, keys1.getPrivate());
+			syncedTransactionPackages.add(tp);
 			if (i % (numToRun / 10) == 0) {
 				System.out.println((double) (numToRun - i) / numToRun);
 			}
 		}
 
-		// execute threaded transactions
-		BlockTesterThreaded btt = new BlockTesterThreaded(blockChainLists, tps);
+		//testing tps for processing transactions
+		BlockTesterThreaded btt = new BlockTesterThreaded(syncedBlockChainLists, syncedTransactionPackages);
 		long launchTime = new Date().getTime();
+		System.out.println("Initiating Thread Tests");
 		for (int i = 0; i < runners.length; i++) {
 			runners[i] = new Thread(btt);
 			executor.submit(runners[i]);
 		}
 		double joinTime = new Date().getTime();
+
 		// join threads
 		System.out.println("Bingo");
-		while (blockChainLists[0].size() < numToRun) {
+		while (syncedBlockChainLists[0].size() < numToRun) {
 			Thread.sleep(1000);
-			System.out.println(">> " + blockChainListsThread[0].size());
+			System.out.println(">> " + unsyncedBlockChainLists[0].size());
 		}
-		int numProcessed = blockChainLists[0].size();
+		int numProcessed = syncedBlockChainLists[0].size();
 		double finishTime = new Date().getTime();
 		executor.shutdown();
 		System.out.println("JOINED!");
@@ -110,17 +107,18 @@ public class App {
 		for (int i = 0; i < runners.length; i++) {
 			runners[i].join();
 		}
-		// verify transactions
+
+		//"randomly" verify block signatures
 		int numVerified = numToRun;
-		for (int i = 1; i < blockChainLists[0].size(); i *= 2) {
-			if (!((TransactionPackage) blockChainLists[0].get(i)).verifySigner()) {
+		for (int i = 1; i < syncedBlockChainLists[0].size(); i *= 2) {
+			if (!((TransactionPackage) syncedBlockChainLists[0].get(i)).verifySigner()) {
 				numVerified--;
 			}
 		}
 
 		// print results
-		System.out.println("numAdded: " + blockChainLists[0].size() + " V.S. " + numToRun);
-		System.out.println("numVerifiedSig: " + blockChainLists[0].size() + " V.S. " + numVerified);
+		System.out.println("numAdded: " + syncedBlockChainLists[0].size() + " V.S. " + numToRun);
+		System.out.println("numVerifiedSig: " + syncedBlockChainLists[0].size() + " V.S. " + numVerified);
 		System.out.println("Launch in: " + (joinTime - launchTime) / 1000.0);
 		System.out.println("Run in: " + (finishTime - joinTime) / 1000.0);
 		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));

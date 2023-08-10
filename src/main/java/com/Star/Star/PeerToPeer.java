@@ -32,6 +32,7 @@ public abstract class PeerToPeer {
 				try {
 					start();
 				} catch (IOException e) {
+					System.err.println(e.getMessage());
 				}
 			}
 		});
@@ -42,7 +43,7 @@ public abstract class PeerToPeer {
 		try {
 			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 		}
 
 		Thread sendLoop = new Thread(new Runnable() {
@@ -50,6 +51,7 @@ public abstract class PeerToPeer {
 				try {
 					loopSend();
 				} catch (Exception e) {
+					System.err.println(e.getMessage());
 				}
 			}
 		});
@@ -64,11 +66,10 @@ public abstract class PeerToPeer {
 			try {
 				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
 			} catch (Exception e1) {
-				e1.printStackTrace();
+				System.err.println(e.getMessage());
 			}
 		}
 		this.toSend.put(tcpPack.getHash(), tcpPack);
-//		System.out.println(toSend.size() + " " + port);
 	}
 
 	public void loopSend() throws InterruptedException {
@@ -92,8 +93,7 @@ public abstract class PeerToPeer {
 						String hash = (String) in.readObject();
 						this.toSend.remove(hash);
 					} catch (Exception e) {
-//						System.out.println("FAIL SEND");
-						e.printStackTrace();
+						System.err.println(e.getMessage());
 					}
 				}
 			}
@@ -102,21 +102,21 @@ public abstract class PeerToPeer {
 			out.close();
 			in.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 		}
 	}
 
 	public void start() throws IOException {
-		new Recieve(this.serverSocket.accept()).start();
+		new Receive(this.serverSocket.accept()).start();
 	}
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
-	public class Recieve extends Thread {
+	public class Receive extends Thread {
 		private TCPPackage tcpPack = null;
 		private final Socket clientSocket;
 
-		public Recieve(Socket socket) {
+		public Receive(Socket socket) {
 			clientSocket = socket;
 		}
 
@@ -125,8 +125,8 @@ public abstract class PeerToPeer {
 				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
 				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
 				while (!close) {
-					Object objRecieved = in.readObject();
-					tcpPack = (TCPPackage) objRecieved;
+					Object objReceived = in.readObject();
+					tcpPack = (TCPPackage) objReceived;
 					onRecieveMessage(tcpPack.getObject());
 					String hash = tcpPack.getHash();
 					out.writeObject(hash);
@@ -134,11 +134,9 @@ public abstract class PeerToPeer {
 				in.close();
 				out.close();
 				clientSocket.close();
-//				System.out.println("recv");
 				onRecieveMessage(tcpPack.getObject());
 			} catch (Exception e) {
 				System.err.println(e.getMessage());
-				e.printStackTrace();
 			}
 		}
 	}

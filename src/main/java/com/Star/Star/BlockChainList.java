@@ -1,8 +1,5 @@
 package com.Star.Star;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -11,8 +8,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map.Entry;
 
+import static com.Star.Star.services.ValidationService.validate;
+
+/**
+ * Data structure that represents single blockchain
+ */
 public class BlockChainList extends PeerToPeer implements List {
 
 	Block block;
@@ -24,13 +25,13 @@ public class BlockChainList extends PeerToPeer implements List {
 	int size;
 	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
-	private List<ServerAddress> peers;
+	private ServerAddress peer;
 	private String ip;
 	private int port;
 
-	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, List<ServerAddress> peers,
-			int maxTpChunckSize, int numPorts) throws Exception {
-		super(ip, port, numPorts);
+	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer)
+			throws Exception {
+		super(ip, port, peer);
 		block = new Block(sk, pk, "000000000000000");
 		blockChain = Collections.synchronizedList(new ArrayList<Block>());
 		for (int i = 0; i < difficulty; i++)
@@ -39,7 +40,7 @@ public class BlockChainList extends PeerToPeer implements List {
 		this.pk = pk;
 		this.sk = sk;
 		this.size = 0;
-		this.peers = peers;
+		this.peer = peer;
 		this.ip = ip;
 		this.port = port;
 	}
@@ -83,7 +84,6 @@ public class BlockChainList extends PeerToPeer implements List {
 			}
 
 			public TransactionPackage next() {
-				TransactionPackage tp;
 				if (!this.hasNext()) {
 					throw new IndexOutOfBoundsException("Ran out of bounds");
 				} else if (blockI + 1 < curBlock.getTransactions().size()) {
@@ -122,53 +122,58 @@ public class BlockChainList extends PeerToPeer implements List {
 		return array;
 	}
 
-	public boolean add(Object transaction) {
-		try {
-			TransactionPackage tp = (TransactionPackage) transaction;
-			block.addTransaction(tp);
-			if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
-				block.signBlock();
-				blockChain.add(block);
-				block = new Block(sk, pk, block.getHash());
-			}
-			this.size++;
-
-			for (int i = 0; i < peers.size(); i++) {
-				ServerAddress peer = peers.get(i);
-				try {
-					this.sendMessage(tp, peer.getIp(), peer.getPort());
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw e;
-				}
-			}
-			return true;
-		} catch (Exception e) {
-			try {
-				Block tempBlock = ((Block) transaction);
-				if (tempBlock.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
-						&& tempBlock.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
-					blockChain.add(tempBlock);
-					block = new Block(sk, pk, tempBlock.getHash());
-				}
-
-				this.size++;
-				for (ServerAddress peer : peers) {
-					try {
-						this.sendMessage(tempBlock, peer.getIp(), peer.getPort());
-					} catch (Exception e2) {
-						e2.printStackTrace();
-					}
-				}
-				return true;
-			} catch (Exception e1) {
-				e1.printStackTrace();
-				return false;
-			}
-		}
+	@Override
+	public boolean add(Object object) {
+		if(object instanceof TransactionPackage) {
+			return this.addTransactionPackage((TransactionPackage) object);
+		} else
+			return this.addBlock((Block) object);
 	}
 
-	public int getHight() {
+	public boolean addTransactionPackage(TransactionPackage transactionPackage) {
+        try {
+            recievedTransactionHashes.add(transactionPackage.getHash());
+            //todo add verification here
+            if(!validate(transactionPackage)) {
+				throw new Exception("Validation Failed");
+			};
+            block.addTransaction(transactionPackage);
+            if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
+                block.signBlock();
+                blockChain.add(block);
+                block = new Block(sk, pk, block.getHash());
+            }
+            this.size++;
+            if (peer != null)
+                addToSend(transactionPackage);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+        return true;
+	}
+
+    public boolean addBlock(Block block) {
+        try {
+            validate(blockChain.get(blockChain.size()), block);
+            recievedBlockHashes.add(block.getHash());
+            if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
+                    && block.blockBody.prevBlockHash.equals(blockChain.get(blockChain.size() - 1).getHash())) {
+                blockChain.add(block);
+                this.block = new Block(sk, pk, block.getHash());
+            }
+
+            this.size += block.getTransactions().size();
+            if (peer != null)
+                addToSend(block);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+	public int getHeight() {
 		return blockChain.size();
 	}
 
@@ -257,12 +262,12 @@ public class BlockChainList extends PeerToPeer implements List {
 				add = false;
 			} else {
 				add = true;
-				this.recievedTransactionHashes.add(tp.getHash());
 			}
+//			System.out.println(hash + " " + add + " " + this.recievedTransactionHashes.size());
 			if (add) {
 				this.add(tp);
 			}
-		} catch (Exception e) {
+		} catch (ClassCastException e) {
 			try {
 				boolean add;
 				Block block = (Block) msg;
@@ -270,7 +275,6 @@ public class BlockChainList extends PeerToPeer implements List {
 				if (this.recievedBlockHashes.contains(hash)) {
 					add = false;
 				} else {
-					this.recievedBlockHashes.add(block.getHash());
 					add = true;
 				}
 

@@ -1,101 +1,139 @@
 package com.Star.Star;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class PeerToPeer implements Runnable {
-	private ServerSocket[] clientSocket;
-	private ObjectInputStream in;
+/**
+ * Peer to peer code for blockchain
+ */
+public abstract class PeerToPeer {
 	private String ip;
-	private int portStart;
-	private int portEnd;
-	private int maxSendAgain;
-	private int numSendAgain = 0;
+	private int port;
+	private ServerAddress peer;
+	private ServerSocket serverSocket;
+	private Socket sendSocket;
+	private ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
+	private boolean close = false;
 
-	public PeerToPeer(String ip, int portStart, int numPorts) throws Exception {
-		clientSocket = new ServerSocket[numPorts];
-		for (int i = 0; i < numPorts; i++) {
-			clientSocket[i] = new ServerSocket(portStart + i);
-		}
+	public PeerToPeer(String ip, int port, ServerAddress peer) throws Exception {
 		this.ip = ip;
-		this.portStart = portStart;
-		this.portEnd = portStart + numPorts;
-		maxSendAgain = numPorts;
-		recieveMessage();
+		this.port = port;
+		this.peer = peer;
+		this.serverSocket = new ServerSocket(port);
+
+		Thread recv = new Thread(() -> {
+            try {
+                start();
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+        });
+		recv.start();
 	}
 
-	public void sendMessage(Object msg, String to_ip, int to_port) throws IOException {
+	public void connectToPeer() {
 		try {
-			if ((!to_ip.equals(this.ip) || (to_port < this.portStart || to_port > this.portEnd))) {
-				OutputStream os = new Socket(to_ip, to_port).getOutputStream();
-				ObjectOutputStream outSocket = new ObjectOutputStream(os);
-				outSocket.writeObject(msg);
-				outSocket.flush();
-				outSocket.close();
-			}
+			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
 		} catch (Exception e) {
-			if (numSendAgain < maxSendAgain) {
-				numSendAgain++;
-				sendMessage(msg, to_ip, to_port + 1);
-			} else {
-				this.numSendAgain = 0;
+			System.err.println(e.getMessage());
+		}
+
+		Thread sendLoop = new Thread(() -> {
+            try {
+                loopSend();
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        });
+		sendLoop.start();
+	}
+
+	public void addToSend(Object msg) {
+		TCPPackage tcpPack = null;
+		try {
+			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (TransactionPackage) msg);
+		} catch (Exception e) {
+			try {
+				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
+			} catch (Exception e1) {
+				System.err.println(e.getMessage());
 			}
 		}
+		this.toSend.put(tcpPack.getHash(), tcpPack);
 	}
 
-	public void recieveMessage() throws Exception {
-		for (int i = 0; i < this.portEnd - this.portStart; i++) {
-			final int index = i;
-			Thread t = new Thread(new Runnable() {
-				@Override
-				public void run() {
+	public void loopSend(){
+		ObjectOutputStream out;
+		ObjectInputStream in;
+		try {
+			out = new ObjectOutputStream(sendSocket.getOutputStream());
+			in = new ObjectInputStream(sendSocket.getInputStream());
+		} catch (Exception e) {
+			loopSend();
+			return;
+		}
+
+		while (!this.close) {
+			if (this.toSend.size() > 5000) {
+				Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
+				while (tcpIterator.hasNext()) {
 					try {
-						recieveMessageHelper(index);
+						TCPPackage tcpPack = tcpIterator.next().getValue();
+						out.writeObject(tcpPack);
+						String hash = (String) in.readObject();
+						this.toSend.remove(hash);
 					} catch (Exception e) {
-						e.printStackTrace();
+						System.err.println(e.getMessage());
 					}
 				}
-			});
-			t.start();
+			}
+		}
+		try {
+			out.close();
+			in.close();
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
 		}
 	}
 
-	public void recieveMessageHelper(int index) throws Exception {
-		while (true) {
-			Socket s = clientSocket[index].accept();
-			ObjectInputStream in = new ObjectInputStream(s.getInputStream());
-			try {
-				Object msg = in.readObject();
-				onRecieveMessage(msg);
-			} catch (Exception e) {
-				s.close();
-				in.close();
-				e.printStackTrace();
-			}
-		}
+	public void start() throws IOException {
+		new Receive(this.serverSocket.accept()).start();
 	}
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
-	public void close() throws IOException {
-		for (int i = 0; i < this.portEnd - this.portEnd; i++) {
-			clientSocket[i].close();
-		}
-	}
+	public class Receive extends Thread {
+		private TCPPackage tcpPack = null;
+		private final Socket clientSocket;
 
-	public void run() {
-		try {
-			recieveMessage();
-		} catch (Exception e) {
+		public Receive(Socket socket) {
+			clientSocket = socket;
+		}
+
+		public void run() {
+			try {
+				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+				while (!close) {
+					Object objReceived = in.readObject();
+					tcpPack = (TCPPackage) objReceived;
+					onRecieveMessage(tcpPack.getObject());
+					String hash = tcpPack.getHash();
+					out.writeObject(hash);
+				}
+				in.close();
+				out.close();
+				clientSocket.close();
+				onRecieveMessage(tcpPack.getObject());
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 		}
 	}
 }

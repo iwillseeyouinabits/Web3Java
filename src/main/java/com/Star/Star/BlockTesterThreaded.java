@@ -1,24 +1,23 @@
 package com.Star.Star;
 
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Process to test single threads acceptance of a transaction
+ */
 public class BlockTesterThreaded implements Runnable {
 	List[] blockChain;
-	List<TransactionPackage> tps;
+	List<TransactionPackage> transactionPackages;
 	
-	public BlockTesterThreaded(List[] blockChain, List<TransactionPackage> tps) {
+	public BlockTesterThreaded(List[] blockChain, List<TransactionPackage> transactionPackages) {
 		this.blockChain = blockChain;
-		this.tps = Collections.synchronizedList(tps);
+		this.transactionPackages = Collections.synchronizedList(transactionPackages);
 	}
 
 	public void run() {
-		TransactionPackage tp = tps.remove(0);
-		int index = (int)(this.blockChain.length*Math.random());
-		this.blockChain[index].add(tp);
+		int index = this.transactionPackages.size();
+		TransactionPackage tp = transactionPackages.remove(0);
+		this.blockChain[index%blockChain.length].add(tp);
 	}
 }

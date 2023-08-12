@@ -1,24 +1,37 @@
 package com.Star.Star;
 
 import java.io.Serializable;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.UUID;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 
-public class HttpTransaction extends TransactionBody  implements Serializable {
+import static com.Star.Star.services.TransactionService.getHTTPTransactionHash;
+
+/**
+ * HttpTransaction
+ */
+public class HttpTransaction extends Transaction implements Serializable {
 
 	final PublicKey clientAdr;
 	final PublicKey websiteAdr;
 	final PublicKey hostAdr;
 	final String postJson;
-	UUID uuid;
 	
 	public HttpTransaction(PublicKey clientAdr, PublicKey websiteAdr, PublicKey hostAdr, String postJson) {
+		super();
 		this.clientAdr = clientAdr;
 		this.websiteAdr = websiteAdr;
 		this.hostAdr = hostAdr;
 		this.postJson = postJson;
-		uuid = new UUID((long) (Math.random()*new Long(0).MAX_VALUE), (long) (Math.random()*new Long(0).MAX_VALUE));
+	}
+	
+	public HttpTransaction(HttpTransaction rhs) throws InvalidKeySpecException, NoSuchAlgorithmException {
+		this.clientAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.clientAdr.getEncoded()));
+		this.websiteAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.websiteAdr.getEncoded()));
+		this.hostAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.hostAdr.getEncoded()));
+		this.postJson = rhs.postJson;
 	}
 	
 	
@@ -32,10 +45,27 @@ public class HttpTransaction extends TransactionBody  implements Serializable {
 		return this.clientAdr;
 	}
 
-
 	@Override
 	public String getHash() throws NoSuchAlgorithmException {
-		return new RSA().getSHA256(new RSA().pkToString(this.clientAdr)+new RSA().pkToString(this.websiteAdr)+new RSA().pkToString(this.hostAdr)+this.postJson+uuid.toString());
+		return getHTTPTransactionHash(this);
+	}
+	
+	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
+		return new HttpTransaction(this);
+	}
+
+	public String getPostJson() { return this.postJson;}
+
+	public PublicKey getClientAdr() {
+		return clientAdr;
+	}
+
+	public PublicKey getWebsiteAdr() {
+		return websiteAdr;
+	}
+
+	public PublicKey getHostAdr() {
+		return hostAdr;
 	}
 
 }

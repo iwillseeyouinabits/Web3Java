@@ -93,18 +93,16 @@ public abstract class PeerToPeer {
 		}
 
 		while (!this.close) {
-			if (this.toSend.size() > 5000) {
-				Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
-				while (tcpIterator.hasNext()) {
-					try {
-						TCPPackage tcpPack = tcpIterator.next().getValue();
-						out.writeObject(tcpPack);
-						String hash = (String) in.readObject();
-						this.toSend.remove(hash);
-					} catch (Exception e) {
+			Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
+			while (tcpIterator.hasNext()) {
+				try {
+					TCPPackage tcpPack = tcpIterator.next().getValue();
+					out.writeObject(tcpPack);
+					String hash = (String) in.readObject();
+					this.toSend.remove(hash);
+				} catch (Exception e) {
 //						System.out.println("FAIL SEND");
-						e.printStackTrace();
-					}
+					e.printStackTrace();
 				}
 			}
 		}
@@ -149,7 +147,6 @@ public abstract class PeerToPeer {
 				out.close();
 				clientSocket.close();
 //				System.out.println("recv");
-				onRecieveMessage(tcpPack.getObject());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

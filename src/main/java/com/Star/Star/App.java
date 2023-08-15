@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 100000;
+		int numToRun = 10000;
 		int numChains = 2;
 		testBatchRun(numToRun, numChains);
 	}
@@ -38,17 +38,16 @@ public class App {
 			}
 		}
 		BlockChainList[] blockChainListsThread = new BlockChainList[numChains];
-
 		for (int i = 0; i < numChains; i++) {
 			blockChainListsThread[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
 					peers[i]);
 		}
 
-		if (numChains > 1)
+		if (numChains > 1) {
 			for (int i = 0; i < numChains; i++) {
-
 				blockChainListsThread[i].connectToPeer();
 			}
+		}
 
 		List[] blockChainLists = new List[numChains];
 		for (int i = 0; i < numChains; i++) {
@@ -99,7 +98,7 @@ public class App {
 		// join threads
 		System.out.println("Bingo");
 		while (blockChainLists[0].size() < numToRun) {
-			Thread.sleep(1000);
+//			Thread.sleep(1000);
 			System.out.println(">> " + blockChainListsThread[0].size());
 		}
 		int numProcessed = blockChainLists[0].size();

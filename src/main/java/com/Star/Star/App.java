@@ -25,10 +25,11 @@ public class App {
 	public static void main(String[] args) throws Exception {
 		int numToRun = 10000;
 		int numChains = 2;
-		testBatchRun(numToRun, numChains);
+		int maxTpChunckSize = 1000;
+		testBatchRun(numToRun, numChains, maxTpChunckSize);
 	}
 
-	public static void testBatchRun(int numToRun, int numChains) throws Exception {
+	public static void testBatchRun(int numToRun, int numChains, int maxTpChunckSize) throws Exception {
 		Thread[] runners = new Thread[numToRun];
 		KeyPair kp = new RSA().generateKeyPair();
 		ServerAddress[] peers = new ServerAddress[numChains];
@@ -40,7 +41,7 @@ public class App {
 		BlockChainList[] blockChainListsThread = new BlockChainList[numChains];
 		for (int i = 0; i < numChains; i++) {
 			blockChainListsThread[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
-					peers[i]);
+					peers[i], maxTpChunckSize);
 		}
 
 		if (numChains > 1) {
@@ -99,7 +100,7 @@ public class App {
 		System.out.println("Bingo");
 		while (blockChainLists[0].size() < numToRun) {
 //			Thread.sleep(1000);
-			System.out.println(">> " + blockChainListsThread[0].size());
+			// System.out.println(">> " + blockChainListsThread[0].size());
 		}
 		int numProcessed = blockChainLists[0].size();
 		double finishTime = new Date().getTime();

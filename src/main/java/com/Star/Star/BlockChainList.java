@@ -28,9 +28,9 @@ public class BlockChainList extends PeerToPeer implements List {
 	private String ip;
 	private int port;
 
-	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer)
+	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer, int maxTpChunckSize)
 			throws Exception {
-		super(ip, port, peer);
+		super(ip, port, peer, maxTpChunckSize);
 		block = new Block(sk, pk, "000000000000000");
 		blockChain = Collections.synchronizedList(new ArrayList<Block>());
 		for (int i = 0; i < difficulty; i++)
@@ -139,6 +139,7 @@ public class BlockChainList extends PeerToPeer implements List {
 			return true;
 		} catch (Exception e) {
 			try {
+				e.printStackTrace();
 				Block tempBlock = ((Block) transaction);
 				recievedBlockHashes.add(tempBlock.getHash());
 				if (tempBlock.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)

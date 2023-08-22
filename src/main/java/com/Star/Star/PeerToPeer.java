@@ -29,14 +29,17 @@ public abstract class PeerToPeer {
 	private ServerSocket serverSocket;
 	private Socket sendSocket;
 	private ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
+	private List<TransactionPackage> tpChunck;
+	private int maxTpChunckSize;
 	private boolean close = false;
 
-	public PeerToPeer(String ip, int port, ServerAddress peer) throws Exception {
+	public PeerToPeer(String ip, int port, ServerAddress peer, int maxTpChunckSize) throws Exception {
 		this.ip = ip;
 		this.port = port;
 		this.peer = peer;
 		this.serverSocket = new ServerSocket(port);
-
+		this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+		this.maxTpChunckSize = maxTpChunckSize;
 		Thread recv = new Thread(new Runnable() {
 			public void run() {
 				try {
@@ -69,15 +72,21 @@ public abstract class PeerToPeer {
 	public void addToSend(Object msg) {
 		TCPPackage tcpPack = null;
 		try {
-			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (TransactionPackage) msg);
+			TransactionPackage tp = (TransactionPackage) msg;
+			this.tpChunck.add(tp);
+			if (maxTpChunckSize <= tpChunck.size()) {
+				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tpChunck);
+				this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+				this.toSend.put(tcpPack.getHash(), tcpPack);
+			}
 		} catch (Exception e) {
 			try {
 				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
+				this.toSend.put(tcpPack.getHash(), tcpPack);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
 		}
-		this.toSend.put(tcpPack.getHash(), tcpPack);
 //		System.out.println(toSend.size() + " " + port);
 	}
 
@@ -139,7 +148,9 @@ public abstract class PeerToPeer {
 				while (!close) {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
-					onRecieveMessage(tcpPack.getObject());
+					List<TransactionPackage> chunck = (List<TransactionPackage>) tcpPack.getObject();
+					for (TransactionPackage tp : chunck)
+						onRecieveMessage(tp);
 					String hash = tcpPack.getHash();
 					out.writeObject(hash);
 				}

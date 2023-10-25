@@ -81,6 +81,7 @@ public abstract class PeerToPeer {
 			}
 		} catch (Exception e) {
 			try {
+				e.printStackTrace();
 				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
 				this.toSend.put(tcpPack.getHash(), tcpPack);
 			} catch (Exception e1) {
@@ -148,11 +149,11 @@ public abstract class PeerToPeer {
 				while (!close) {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
+					String hash = tcpPack.getHash();
+					out.writeObject(hash);
 					List<TransactionPackage> chunck = (List<TransactionPackage>) tcpPack.getObject();
 					for (TransactionPackage tp : chunck)
 						onRecieveMessage(tp);
-					String hash = tcpPack.getHash();
-					out.writeObject(hash);
 				}
 				in.close();
 				out.close();

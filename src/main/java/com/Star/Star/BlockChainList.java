@@ -134,9 +134,9 @@ public class BlockChainList extends PeerToPeer implements List {
         try {
             recievedTransactionHashes.add(transactionPackage.getHash());
             //todo add verification here
-            if(!validate(transactionPackage)) {
-				throw new Exception("Validation Failed");
-			};
+            // if(!validate(transactionPackage)) {
+			// 	throw new Exception("Validation Failed");
+			// };
             block.addTransaction(transactionPackage);
             if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
                 block.signBlock();

@@ -1,4 +1,4 @@
-package com.Star.Star;
+package com.Star.Star.services;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -13,16 +13,18 @@ import java.security.Signature;
 import java.util.Base64;
 import javax.crypto.Cipher;
 
-public class RSA {
+/**
+ * Service layer that contains RSA encryption logic
+ */
+public class RSAService {
 
-	public KeyPair generateKeyPair() throws NoSuchAlgorithmException {
+	public static KeyPair generateKeyPair() throws NoSuchAlgorithmException {
 	    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
 	    generator.initialize(2048, new SecureRandom());
-	    KeyPair pair = generator.generateKeyPair();
-	    return pair;
+	    return generator.generateKeyPair();
 	}
 	
-	public String pkToString(PublicKey pk) {
+	public static String pkToString(PublicKey pk) {
 		return Base64.getEncoder().encodeToString(pk.getEncoded());
 	}
 	
@@ -48,7 +50,7 @@ public class RSA {
 	    return new String(decriptCipher.doFinal(bytes));
 	}
 	
-	public String sign(String plainText, PrivateKey privateKey) throws Exception {
+	public static String sign(String plainText, PrivateKey privateKey) throws Exception {
 	    Signature privateSignature = Signature.getInstance("SHA256withRSA");
 	    privateSignature.initSign(privateKey);
 	    privateSignature.update(plainText.getBytes());

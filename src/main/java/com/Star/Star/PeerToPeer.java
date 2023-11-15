@@ -1,27 +1,20 @@
 package com.Star.Star;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Peer to peer code for blockchain
+ */
 public abstract class PeerToPeer {
 	private String ip;
 	private int port;
@@ -55,17 +48,16 @@ public abstract class PeerToPeer {
 		try {
 			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 		}
 
-		Thread sendLoop = new Thread(new Runnable() {
-			public void run() {
-				try {
-					loopSend();
-				} catch (Exception e) {
-				}
-			}
-		});
+		Thread sendLoop = new Thread(() -> {
+            try {
+                loopSend();
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        });
 		sendLoop.start();
 	}
 
@@ -73,27 +65,24 @@ public abstract class PeerToPeer {
 		TCPPackage tcpPack = null;
 		try {
 			TransactionPackage tp = (TransactionPackage) msg;
-			this.tpChunck.add(tp);
-			if (maxTpChunckSize <= tpChunck.size()) {
-				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tpChunck);
-				this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
-				this.toSend.put(tcpPack.getHash(), tcpPack);
-			}
+			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tp);
+			this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} catch (Exception e) {
 			try {
 				e.printStackTrace();
 				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
 				this.toSend.put(tcpPack.getHash(), tcpPack);
 			} catch (Exception e1) {
-				e1.printStackTrace();
+				System.err.println(e.getMessage());
 			}
 		}
 //		System.out.println(toSend.size() + " " + port);
 	}
 
-	public void loopSend() throws InterruptedException {
-		ObjectOutputStream out = null;
-		ObjectInputStream in = null;
+	public void loopSend(){
+		ObjectOutputStream out;
+		ObjectInputStream in;
 		try {
 			out = new ObjectOutputStream(sendSocket.getOutputStream());
 			in = new ObjectInputStream(sendSocket.getInputStream());
@@ -120,25 +109,21 @@ public abstract class PeerToPeer {
 			out.close();
 			in.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 		}
 	}
 
 	public void start() throws IOException {
-		new Recieve(this.serverSocket.accept()).start();
-	}
-
-	public void close() {
-		this.close = true;
+		new Receive(this.serverSocket.accept()).start();
 	}
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
-	public class Recieve extends Thread {
+	public class Receive extends Thread {
 		private TCPPackage tcpPack = null;
-		private Socket clientSocket;
+		private final Socket clientSocket;
 
-		public Recieve(Socket socket) {
+		public Receive(Socket socket) {
 			clientSocket = socket;
 		}
 
@@ -146,21 +131,21 @@ public abstract class PeerToPeer {
 			try {
 				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
 				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+				System.out.println("Start recv");
 				while (!close) {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
 					String hash = tcpPack.getHash();
 					out.writeObject(hash);
-					List<TransactionPackage> chunck = (List<TransactionPackage>) tcpPack.getObject();
-					for (TransactionPackage tp : chunck)
-						onRecieveMessage(tp);
+					TransactionPackage tp = (TransactionPackage) tcpPack.getObject();
+					onRecieveMessage(tp);
 				}
 				in.close();
 				out.close();
 				clientSocket.close();
 //				System.out.println("recv");
 			} catch (Exception e) {
-				e.printStackTrace();
+				System.err.println(e.getMessage());
 			}
 		}
 	}

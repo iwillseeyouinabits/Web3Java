@@ -15,8 +15,8 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 10000;
-		int numChains = 5;
+		int numToRun = 100000;
+		int numChains = 2;
 		int maxTpChunckSize = 1;
 		testBatchRun(numToRun, numChains, maxTpChunckSize);
 	}
@@ -96,8 +96,8 @@ public class App {
 		// join threads
 		System.out.println("Bingo");
 		while (syncedBlockChainLists[0].size() < numToRun) {
-			// Thread.sleep(1000);
-			// System.out.println(">> " + unsyncedBlockChainLists[0].size());
+			Thread.sleep(1000);
+			System.out.println(">> " + syncedBlockChainLists[0].size() + " " + syncedBlockChainLists[1].size() + " " + syncedBlockChainLists[0].indexOf(0) + " " + syncedBlockChainLists[1].indexOf(0));
 		}
 		int numProcessed = syncedBlockChainLists[0].size();
 		double finishTime = new Date().getTime();

@@ -23,7 +23,7 @@ public class BlockChainList extends PeerToPeer implements List {
 	PublicKey pk;
 	PrivateKey sk;
 	int size;
-	private ArrayList<String> recievedTransactionHashes = new ArrayList<String>();
+	private List<String> recievedTransactionHashes;
 	private ArrayList<String> recievedBlockHashes = new ArrayList<String>();
 	private ServerAddress peer;
 	private String ip;
@@ -35,6 +35,7 @@ public class BlockChainList extends PeerToPeer implements List {
 		super(ip, port, peer, maxTpChunckSize);
 		block = new Block(sk, pk, "000000000000000");
 		blockChain = Collections.synchronizedList(new ArrayList<Block>());
+		recievedTransactionHashes = Collections.synchronizedList(new ArrayList<String>());
 		for (int i = 0; i < difficulty; i++)
 			this.difficultyStr += "0";
 		this.difficultyNum = difficulty;
@@ -127,21 +128,24 @@ public class BlockChainList extends PeerToPeer implements List {
 	public boolean add(Object object) {
 		if (object instanceof TransactionPackage) {
 			TransactionPackage transactionPackage = (TransactionPackage) object;
+			String tpHash = transactionPackage.getHash();
 			try {
-				recievedTransactionHashes.add(transactionPackage.getHash());
-				// todo add verification here
-				// if(!validate(transactionPackage)) {
-				// throw new Exception("Validation Failed");
-				// };
-				block.addTransaction(transactionPackage);
-				if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
-					block.signBlock();
-					blockChain.add(block);
-					block = new Block(sk, pk, block.getHash());
+				if (!this.recievedTransactionHashes.contains(tpHash)) {
+					recievedTransactionHashes.add(tpHash);
+					// todo add verification here
+					// if(!validate(transactionPackage)) {
+					// throw new Exception("Validation Failed");
+					// };
+					block.addTransaction(transactionPackage);
+					if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)) {
+						block.signBlock();
+						blockChain.add(block);
+						block = new Block(sk, pk, block.getHash());
+					}
+					this.size++;
+					if (peer != null)
+						addToSend(transactionPackage);
 				}
-				this.size++;
-				if (peer != null)
-					addToSend(transactionPackage);
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
 				return false;
@@ -253,7 +257,7 @@ public class BlockChainList extends PeerToPeer implements List {
 	}
 
 	public int indexOf(Object o) {
-		return 0;
+		return toSend.size();
 	}
 
 	public int lastIndexOf(Object o) {
@@ -278,17 +282,7 @@ public class BlockChainList extends PeerToPeer implements List {
 			boolean add;
 			String hash;
 			TransactionPackage tp = (TransactionPackage) msg;
-			hash = tp.getHash();
-			if (this.recievedTransactionHashes.contains(hash)) {
-				add = false;
-			} else {
-				add = true;
-			}
-			// System.out.println(hash + " " + add + " " +
-			// this.recievedTransactionHashes.size());
-			if (add) {
-				this.add(tp);
-			}
+			this.add(tp);
 		} catch (ClassCastException e) {
 			try {
 				boolean add;

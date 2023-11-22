@@ -21,7 +21,7 @@ public abstract class PeerToPeer {
 	private ServerAddress peer;
 	private ServerSocket serverSocket;
 	private Socket sendSocket;
-	private ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
+	protected ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
 	private List<TransactionPackage> tpChunck;
 	private int maxTpChunckSize;
 	private boolean close = false;
@@ -136,9 +136,9 @@ public abstract class PeerToPeer {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
 					String hash = tcpPack.getHash();
-					out.writeObject(hash);
 					TransactionPackage tp = (TransactionPackage) tcpPack.getObject();
 					onRecieveMessage(tp);
+					out.writeObject(hash);
 				}
 				in.close();
 				out.close();

@@ -30,7 +30,7 @@ public class ValidationService {
             //validating all transactions on block
             transactionsRule = blockToVerify.getTransactions().stream().allMatch(ValidationService::validate);
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            System.err.println("**#" + e.getMessage());
             return false;
         }
         return blockSignatureRule && blockTimeRule && prevBlockHashRule && transactionsRule;
@@ -63,7 +63,7 @@ public class ValidationService {
                         getCurrencyTransactionHash((CurrencyTransaction) transactionPackage.getTransaction()));
             }
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            System.err.println("%^^ " + e.getMessage());
             return false;
         }
         return transactionRule && hashRule && signatureRule;

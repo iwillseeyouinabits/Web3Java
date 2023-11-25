@@ -24,29 +24,29 @@ public class BlockBody implements Serializable {
 
 	public PublicKey getMinerPk() {return minerPk;}
 
-	public BlockBody(String prevBlockHash, PublicKey minerPk) {
+	public BlockBody(String prevBlockHash, PublicKey minerPk) throws NoSuchAlgorithmException {
 		this.prevBlockHash = prevBlockHash;
 		this.minerPk = minerPk;
 		this.timestamp = getCurrentTime();
-		this.block = Collections.synchronizedList(new ArrayList<>());
-		hashableToken = this.prevBlockHash + RSAService.pkToString(this.minerPk);
+		this.block = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+		this.hashableToken = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
 	}
 
 	public void addTransaction(TransactionPackage transaction) throws NoSuchAlgorithmException {
+		// this.hashableToken = RSAService.getSHA256(this.hashableToken + transaction.getHash());
 		block.add(transaction);
-		this.hashableToken = RSAService.getSHA256(this.hashableToken+transaction.getHash());
 	}
 
 	public String getHash() throws NoSuchAlgorithmException { 
-		return RSAService.getSHA256(hashableToken);
+		return RSAService.getSHA256(getHashableToken());
 	}
 	
-	public String getHashableToken() throws NoSuchAlgorithmException {
-		String hashableToken = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
-		for (TransactionPackage tp : this.block) {
-			hashableToken += tp.getHash();
+	private String getHashableToken() throws NoSuchAlgorithmException {
+		String token = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
+		for (int i = 0; i < block.size(); i++) {
+			token += block.get(i).getHash();
 		}
-		return hashableToken;
+		return token;
 	}
 
 }

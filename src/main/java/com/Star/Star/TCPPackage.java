@@ -40,4 +40,8 @@ public class TCPPackage implements Serializable {
 	public String getHash() {
 		return this.hash;
 	}
+	
+	public boolean isBlock() {
+		return this.isBlock;
+	}
 }

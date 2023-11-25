@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.Star.Star.services.RSAService;
+
 /**
  * Peer to peer code for blockchain
  */
@@ -22,8 +24,6 @@ public abstract class PeerToPeer {
 	private ServerSocket serverSocket;
 	private Socket sendSocket;
 	protected ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
-	private List<TransactionPackage> tpChunck;
-	private int maxTpChunckSize;
 	private boolean close = false;
 
 	public PeerToPeer(String ip, int port, ServerAddress peer, int maxTpChunckSize) throws Exception {
@@ -31,8 +31,6 @@ public abstract class PeerToPeer {
 		this.port = port;
 		this.peer = peer;
 		this.serverSocket = new ServerSocket(port);
-		this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
-		this.maxTpChunckSize = maxTpChunckSize;
 		Thread recv = new Thread(new Runnable() {
 			public void run() {
 				try {
@@ -48,36 +46,30 @@ public abstract class PeerToPeer {
 		try {
 			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			System.err.println("!!" + e.getMessage());
 		}
 
 		Thread sendLoop = new Thread(() -> {
             try {
                 loopSend();
             } catch (Exception e) {
-                System.err.println(e.getMessage());
+                System.err.println("??" + e.getMessage());
             }
         });
 		sendLoop.start();
 	}
 
-	public void addToSend(Object msg) {
+	public void addToSend(Object msg) throws Exception {
 		TCPPackage tcpPack = null;
-		try {
+		if (msg instanceof TransactionPackage) {
 			TransactionPackage tp = (TransactionPackage) msg;
 			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tp);
-			this.tpChunck = Collections.synchronizedList(new ArrayList<TransactionPackage>());
 			this.toSend.put(tcpPack.getHash(), tcpPack);
-		} catch (Exception e) {
-			try {
-				e.printStackTrace();
-				tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), (Block) msg);
-				this.toSend.put(tcpPack.getHash(), tcpPack);
-			} catch (Exception e1) {
-				System.err.println(e.getMessage());
-			}
+		} else {
+			Block block = (Block) msg;
+			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
+			this.toSend.put(tcpPack.getHash(), tcpPack);
 		}
-//		System.out.println(toSend.size() + " " + port);
 	}
 
 	public void loopSend(){
@@ -93,14 +85,27 @@ public abstract class PeerToPeer {
 
 		while (!this.close) {
 			Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorBlocks = this.toSend.entrySet().iterator();
+			while (tcpIteratorBlocks.hasNext()) {
+				try {
+					TCPPackage tcpPack = tcpIteratorBlocks.next().getValue();
+					if (tcpPack.isBlock()) {
+						out.writeObject(tcpPack);
+						String hash = (String) in.readObject();
+						this.toSend.remove(hash);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			while (tcpIterator.hasNext()) {
 				try {
 					TCPPackage tcpPack = tcpIterator.next().getValue();
 					out.writeObject(tcpPack);
 					String hash = (String) in.readObject();
 					this.toSend.remove(hash);
+					break;
 				} catch (Exception e) {
-//						System.out.println("FAIL SEND");
 					e.printStackTrace();
 				}
 			}
@@ -109,7 +114,7 @@ public abstract class PeerToPeer {
 			out.close();
 			in.close();
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			System.err.println("{{" + e.getMessage());
 		}
 	}
 
@@ -131,21 +136,20 @@ public abstract class PeerToPeer {
 			try {
 				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
 				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-				System.out.println("Start recv");
+				System.out.println("Start recv ");
 				while (!close) {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
 					String hash = tcpPack.getHash();
-					TransactionPackage tp = (TransactionPackage) tcpPack.getObject();
-					onRecieveMessage(tp);
+					Object msg = tcpPack.getObject();
+					onRecieveMessage(msg);
 					out.writeObject(hash);
 				}
 				in.close();
 				out.close();
 				clientSocket.close();
-//				System.out.println("recv");
 			} catch (Exception e) {
-				System.err.println(e.getMessage());
+				System.err.println("^^" + e.getMessage());
 			}
 		}
 	}

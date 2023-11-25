@@ -15,15 +15,18 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 100000;
+		int numToRun = 3000;
 		int numChains = 2;
-		int maxTpChunckSize = 1;
-		testBatchRun(numToRun, numChains, maxTpChunckSize);
+		int maxDifficulty = 3;
+		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
-	public static void testBatchRun(int numToRun, int numChains, int maxTpChunckSize) throws Exception {
+	public static void testBatchRun(int numToRun, int numChains, int maxDifficulty) throws Exception {
 		Thread[] runners = new Thread[numToRun];
-		KeyPair kp = new RSAService().generateKeyPair();
+		KeyPair[] kps = new KeyPair[numChains];
+		for (int i = 0; i < numChains; i++) {
+			kps[i] = new RSAService().generateKeyPair();
+		}
 		ServerAddress[] peers = new ServerAddress[numChains];
 		if (numChains > 1) {
 			for (int i = 0; i < numChains; i++) {
@@ -35,8 +38,8 @@ public class App {
 		BlockChainList[] unsyncedBlockChainLists = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
-			unsyncedBlockChainLists[i] = new BlockChainList(kp.getPrivate(), kp.getPublic(), 4, "127.0.0.1", 42069 + i,
-					peers[i], maxTpChunckSize);
+			unsyncedBlockChainLists[i] = new BlockChainList(kps[i].getPrivate(), kps[i].getPublic(), maxDifficulty, "127.0.0.1", 42069 + i,
+					peers[i], maxDifficulty);
 		}
 
 		if (numChains > 1)
@@ -116,11 +119,18 @@ public class App {
 			}
 		}
 
+		Thread.sleep(5000);
 		// print results
 		System.out.println("numAdded: " + syncedBlockChainLists[0].size() + " V.S. " + numToRun);
 		System.out.println("numVerifiedSig: " + syncedBlockChainLists[0].size() + " V.S. " + numVerified);
 		System.out.println("Launch in: " + (joinTime - launchTime) / 1000.0);
 		System.out.println("Run in: " + (finishTime - joinTime) / 1000.0);
 		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));
+		for (int i = 0; i < unsyncedBlockChainLists[0].blockChain.size() && i < unsyncedBlockChainLists[1].blockChain.size(); i++) {
+			System.out.println(unsyncedBlockChainLists[0].getBlockChainList().get(i).getHash() + " <=> " + unsyncedBlockChainLists[1].getBlockChainList().get(i).getHash());
+			for (int j = 0; j < unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.size() && j < 10; j++) {
+				System.out.println( "    -> " + unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.get(j).getHash() + " <-> " + unsyncedBlockChainLists[1].getBlockChainList().get(i).blockBody.block.get(j).getHash());
+			}
+		}
 	}
 }

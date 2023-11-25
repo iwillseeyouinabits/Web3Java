@@ -16,7 +16,7 @@ public class Block implements Serializable{
 	BlockBody blockBody;
 	String blockSig;
 
-	public Block(PrivateKey sk, PublicKey pk, String prevBlockHash) {
+	public Block(PrivateKey sk, PublicKey pk, String prevBlockHash) throws NoSuchAlgorithmException {
 		this.sk = sk;
 		this.blockBody = new BlockBody(prevBlockHash, pk);
 	}
@@ -30,7 +30,9 @@ public class Block implements Serializable{
 		this.blockSig = RSAService.sign(this.blockBody.getHash(), sk);
 	}
 	
-	public String getHash() throws NoSuchAlgorithmException { return this.blockBody.getHash(); }
+	public String getHash() throws NoSuchAlgorithmException { 
+		return this.blockBody.getHash(); 
+	}
 
 	public BlockBody getBlockBody() { return blockBody; }
 

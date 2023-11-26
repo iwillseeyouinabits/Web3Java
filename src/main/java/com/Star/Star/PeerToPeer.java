@@ -64,10 +64,14 @@ public abstract class PeerToPeer {
 		if (msg instanceof TransactionPackage) {
 			TransactionPackage tp = (TransactionPackage) msg;
 			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tp);
+			if(this.toSend.containsKey(tcpPack.getHash()))
+				System.out.println("Already Here!!!");
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} else {
 			Block block = (Block) msg;
 			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
+			if(this.toSend.containsKey(tcpPack.getHash()))
+				System.out.println("Already Here!!!");
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		}
 	}
@@ -121,6 +125,10 @@ public abstract class PeerToPeer {
 	public void start() throws IOException {
 		new Receive(this.serverSocket.accept()).start();
 	}
+	
+	public void close() {
+		close = true;
+	}
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
@@ -141,12 +149,10 @@ public abstract class PeerToPeer {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
 					String hash = tcpPack.getHash();
+					out.writeObject(hash);
 					Object msg = tcpPack.getObject();
 					onRecieveMessage(msg);
-					out.writeObject(hash);
 				}
-				in.close();
-				out.close();
 				clientSocket.close();
 			} catch (Exception e) {
 				System.err.println("^^" + e.getMessage());

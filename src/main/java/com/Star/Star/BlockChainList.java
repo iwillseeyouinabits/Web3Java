@@ -1,5 +1,8 @@
 package com.Star.Star;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -11,6 +14,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.Star.Star.services.RSAService;
 
@@ -38,7 +45,7 @@ public class BlockChainList extends PeerToPeer implements List {
 			int maxTpChunckSize)
 			throws Exception {
 		super(ip, port, peer, maxTpChunckSize);
-		block = new Block(sk, pk, "000000000000000");
+		block = new Block(pk, "000000000000000");
 		blockChain = Collections.synchronizedMap(new HashMap<String, Block>());
 		recievedTransactionHashes = Collections.synchronizedList(new ArrayList<String>());
 		recievedBlockHashes = Collections.synchronizedList(new ArrayList<String>());
@@ -133,6 +140,8 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	@Override
 	public boolean add(Object object) {
+		synchronized (this) {
+
 		if (object instanceof TransactionPackage) {
 			TransactionPackage transactionPackage = (TransactionPackage) object;
 			String tpHash = transactionPackage.getHash();
@@ -141,16 +150,17 @@ public class BlockChainList extends PeerToPeer implements List {
 					recievedTransactionHashes.add(tpHash);
 					this.size++;
 					block.addTransaction(transactionPackage);
+					block.signBlock(sk);
 					if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr) && !recievedBlockHashes.contains(block.getHash())) {
-						block.signBlock();
-						recievedBlockHashes.add(block.getHash());
-						System.out.println("> " + block.getHash() + " " + block.blockBody.getPrevBlockHash() + " " + block.getTransactions().size() + " "
+						Block solvedBlock = block;
+						block = new Block(pk, block.getHash());
+						recievedBlockHashes.add(solvedBlock.getHash());
+						System.out.println("> " + solvedBlock.getHash() + " " + solvedBlock.blockBody.getPrevBlockHash() + " " + solvedBlock.getTransactions().size() + " "
 								+ RSAService.pkToString(pk));
-						blockChain.put(block.blockBody.getPrevBlockHash(), block);
+						blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
 						if (peer != null) {
-							addToSend(block);
+							addToSend(solvedBlock);
 						}
-						block = new Block(sk, pk, block.getHash());
 					} else {
 						if (peer != null) {
 							addToSend(transactionPackage);
@@ -172,7 +182,7 @@ public class BlockChainList extends PeerToPeer implements List {
 							+ RSAService.pkToString(pk));
 					recievedBlockHashes.add(recBlockHash);
 					if (recBlock.getBlockBody().getPrevBlockHash().equals(block.getBlockBody().getPrevBlockHash())) {
-						Block remainderCurBlock = new Block(sk, pk, recBlock.getHash());
+						Block remainderCurBlock = new Block(pk, recBlock.getHash());
 						List<TransactionPackage> curBlockTransactions = block.getTransactions();
 						List<TransactionPackage> recBlockTransactions = recBlock.getTransactions();
 						for (int i = 0; i < curBlockTransactions.size(); i++) {
@@ -183,11 +193,12 @@ public class BlockChainList extends PeerToPeer implements List {
 						}
 						for (int i = 0; i < recBlockTransactions.size(); i++) {
 							TransactionPackage tp = recBlockTransactions.get(i);
-							recievedBlockHashes.add(tp.getHash());
+							recievedTransactionHashes.add(tp.getHash());
 						}
 						this.size = this.size - block.getTransactions().size() + recBlockTransactions.size()
 								+ remainderCurBlock.getTransactions().size();
 						blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
+						System.out.println("@@@ " + curBlockTransactions.size() + " ++ " + block.getTransactions().size());
 						block = remainderCurBlock;
 						if (peer != null)
 							addToSend(recBlock);
@@ -201,6 +212,7 @@ public class BlockChainList extends PeerToPeer implements List {
 			}
 			return true;
 		}
+	}
 	}
 
 	public int getHeight() {
@@ -293,6 +305,22 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	public List subList(int fromIndex, int toIndex) {
 		return null;
+	}
+
+	public JSONArray getJson() throws Exception {
+		JSONArray json = new JSONArray();
+		List<Block> blocks = this.getBlockChainList();
+		for (int i = 0; i < blocks.size(); i++) {
+			json.put(blocks.get(i).getJson());
+		}
+		return json;
+	}
+
+	public void writeToFile(String outputFilePath) throws Exception {
+		JSONArray json = this.getJson();
+		FileWriter fw = new FileWriter(outputFilePath);
+		json.write(fw, 4, 0);
+		fw.close();
 	}
 
 	@Override

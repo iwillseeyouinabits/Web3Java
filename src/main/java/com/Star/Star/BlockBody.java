@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import static com.Star.Star.services.DateService.getCurrentTime;
 
 public class BlockBody implements Serializable {
@@ -33,20 +37,35 @@ public class BlockBody implements Serializable {
 	}
 
 	public void addTransaction(TransactionPackage transaction) throws NoSuchAlgorithmException {
-		// this.hashableToken = RSAService.getSHA256(this.hashableToken + transaction.getHash());
+		this.hashableToken = RSAService.getSHA256(this.hashableToken + transaction.getHash());
 		block.add(transaction);
 	}
 
 	public String getHash() throws NoSuchAlgorithmException { 
 		return RSAService.getSHA256(getHashableToken());
 	}
+
+	
+	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
+		JSONObject json = new JSONObject();
+		JSONArray transactions = new JSONArray();
+		for (int i = 0; i < block.size(); i++) {
+			transactions.put(block.get(i).getJson());
+		}
+		json.put("Previous Block Hash", this.prevBlockHash);
+		json.put("Miner Address", RSAService.pkToString(this.minerPk));
+		json.put("Hash", this.getHash());
+		json.put("Transactions", transactions);
+		return json;
+	}
 	
 	private String getHashableToken() throws NoSuchAlgorithmException {
-		String token = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
-		for (int i = 0; i < block.size(); i++) {
-			token += block.get(i).getHash();
-		}
-		return token;
+		// String token = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
+		// for (int i = 0; i < block.size(); i++) {
+		// 	token += block.get(i).getHash();
+		// }
+		// return token;
+		return this.hashableToken;
 	}
 
 }

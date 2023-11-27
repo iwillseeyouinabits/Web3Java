@@ -58,7 +58,9 @@ public class BlockChainList extends PeerToPeer implements List {
 		this.peer = peer;
 		this.ip = ip;
 		this.port = port;
-		System.out.println("**>" + RSAService.pkToString(pk));
+		System.out.println();
+		System.out.println("Miners Public Key ->" + RSAService.pkToString(pk));
+		System.out.println();
 	}
 
 	public List<TransactionPackage> getTransactions() {
@@ -155,8 +157,6 @@ public class BlockChainList extends PeerToPeer implements List {
 						Block solvedBlock = block;
 						block = new Block(pk, block.getHash());
 						recievedBlockHashes.add(solvedBlock.getHash());
-						System.out.println("> " + solvedBlock.getHash() + " " + solvedBlock.blockBody.getPrevBlockHash() + " " + solvedBlock.getTransactions().size() + " "
-								+ RSAService.pkToString(pk));
 						blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
 						if (peer != null) {
 							addToSend(solvedBlock);
@@ -178,8 +178,6 @@ public class BlockChainList extends PeerToPeer implements List {
 				Block recBlock = (Block) object;
 				String recBlockHash = recBlock.getHash();
 				if (!recievedBlockHashes.contains(recBlockHash)) {
-					System.out.println("-> " + recBlock.getHash() + " " + recBlock.getTransactions().size() + " "
-							+ RSAService.pkToString(pk));
 					recievedBlockHashes.add(recBlockHash);
 					if (recBlock.getBlockBody().getPrevBlockHash().equals(block.getBlockBody().getPrevBlockHash())) {
 						Block remainderCurBlock = new Block(pk, recBlock.getHash());
@@ -198,7 +196,6 @@ public class BlockChainList extends PeerToPeer implements List {
 						this.size = this.size - block.getTransactions().size() + recBlockTransactions.size()
 								+ remainderCurBlock.getTransactions().size();
 						blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
-						System.out.println("@@@ " + curBlockTransactions.size() + " ++ " + block.getTransactions().size());
 						block = remainderCurBlock;
 						if (peer != null)
 							addToSend(recBlock);

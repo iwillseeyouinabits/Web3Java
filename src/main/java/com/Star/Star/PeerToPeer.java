@@ -155,7 +155,7 @@ public abstract class PeerToPeer {
 				}
 				clientSocket.close();
 			} catch (Exception e) {
-				System.err.println("^^" + e.getMessage());
+				// System.err.println("^^" + e.getMessage());
 			}
 		}
 	}

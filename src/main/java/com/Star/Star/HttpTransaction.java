@@ -71,6 +71,7 @@ public class HttpTransaction extends Transaction implements Serializable {
 		json.put("Client Address", RSAService.pkToString(this.clientAdr));
 		json.put("Website Address", RSAService.pkToString(this.websiteAdr));
 		json.put("Host Address", RSAService.pkToString(this.hostAdr));
+		json.put("Post Request", this.postJson);
 		json.put("UUID", this.getUuid().toString());
 		return json;
 	}

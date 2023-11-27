@@ -74,7 +74,8 @@ public class App {
 		}
 
 		// generating test transactions
-		ProgressBar dataGenProgressBar = new ProgressBar("Genearate Moch Data To Load Test Network. Moch Data Left to Gen ->", numToRun, ProgressBarStyle.ASCII);
+		ProgressBar dataGenProgressBar = new ProgressBar(
+				"Genearate Moch Data To Load Test Network. Moch Data Left to Gen ->", numToRun, ProgressBarStyle.ASCII);
 		while (dataGenProgressBar.getCurrent() != numToRun) {
 			Transaction genericTransaction;
 			if (Math.random() > 2.0 / 3.0) {
@@ -85,18 +86,22 @@ public class App {
 						UUID.randomUUID().toString());
 			} else {
 				genericTransaction = new ShellTransaction(
-						keys1.getPublic(), "while true; do { \\\n  echo -ne \"HTTP/1.0 200 OK\\r\\nContent-Length: $(wc -c <index.htm)\\r\\n\\r\\n\"; \\\n  cat \"<HTML><BODY><H1>Hello World!</H1></BODY></HTML>\"; } | nc -l -p 8080 ; \\ \ndone", "Ride Share", UUID.randomUUID().toString());
+						keys1.getPublic(),
+						"while true; do { \\\n  echo -ne \"HTTP/1.0 200 OK\\r\\nContent-Length: $(wc -c <\"<HTML><BODY><H1>Hello World!</H1></BODY></HTML>\")\\r\\n\\r\\n\"; \\\n  cat \"<HTML><BODY><H1>Hello World!</H1></BODY></HTML>\"; } | nc -l -p 8080 ; \\ \ndone",
+						"Ride Share", UUID.randomUUID().toString());
 			}
 			TransactionPackage tp = new TransactionPackage(genericTransaction, keys1.getPrivate());
 			syncedTransactionPackages.add(tp);
 			dataGenProgressBar.step();
 		}
-		dataGenProgressBar.close();;
+		dataGenProgressBar.close();
+		;
 		System.out.println();
 		// testing tps for processing transactions
 		BlockTesterThreaded btt = new BlockTesterThreaded(syncedBlockChainLists, syncedTransactionPackages);
 		long launchTime = new Date().getTime();
-		ProgressBar launchingMochDataToNetworkProgressBar = new ProgressBar("Launching Moch Data To Network. Moch Data Left to Launch -> ", numToRun, ProgressBarStyle.ASCII);
+		ProgressBar launchingMochDataToNetworkProgressBar = new ProgressBar(
+				"Launching Moch Data To Network. Moch Data Left to Launch -> ", numToRun, ProgressBarStyle.ASCII);
 		while (launchingMochDataToNetworkProgressBar.getCurrent() != numToRun) {
 			int i = (int) launchingMochDataToNetworkProgressBar.getCurrent();
 			runners[i] = new Thread(btt);
@@ -108,7 +113,8 @@ public class App {
 		double joinTime = new Date().getTime();
 
 		// join threads
-		ProgressBar dataProcessedProgressBar = new ProgressBar("Data Processed By Network. Data Left to be Processed -> ", numToRun, ProgressBarStyle.ASCII);
+		ProgressBar dataProcessedProgressBar = new ProgressBar(
+				"Data Processed By Network. Data Left to be Processed -> ", numToRun, ProgressBarStyle.ASCII);
 		while (dataProcessedProgressBar.getCurrent() < numToRun) {
 			dataProcessedProgressBar.stepTo(syncedBlockChainLists[0].size());
 		}
@@ -132,20 +138,24 @@ public class App {
 		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));
 
 		// if (syncedBlockChainLists.length > 1) {
-		// 	for (int i = 0; i < unsyncedBlockChainLists[0].getBlockChainList().size()
-		// 			&& i < unsyncedBlockChainLists[1].getBlockChainList().size(); i++) {
-		// 		System.out.println(unsyncedBlockChainLists[0].getBlockChainList().get(i).getHash() + " <=> "
-		// 				+ unsyncedBlockChainLists[1].getBlockChainList().get(i).getHash());
-		// 		for (int j = 0; j < unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.size()
-		// 				&& j < 10; j++) {
-		// 			System.out.println("    -> "
-		// 					+ unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.get(j).getHash()
-		// 					+ " <-> "
-		// 					+ unsyncedBlockChainLists[1].getBlockChainList().get(i).blockBody.block.get(j).getHash());
-		// 		}
-		// 	}
+		// for (int i = 0; i < unsyncedBlockChainLists[0].getBlockChainList().size()
+		// && i < unsyncedBlockChainLists[1].getBlockChainList().size(); i++) {
+		// System.out.println(unsyncedBlockChainLists[0].getBlockChainList().get(i).getHash()
+		// + " <=> "
+		// + unsyncedBlockChainLists[1].getBlockChainList().get(i).getHash());
+		// for (int j = 0; j <
+		// unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.size()
+		// && j < 10; j++) {
+		// System.out.println(" -> "
+		// +
+		// unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.get(j).getHash()
+		// + " <-> "
+		// +
+		// unsyncedBlockChainLists[1].getBlockChainList().get(i).blockBody.block.get(j).getHash());
 		// }
-		for (int i = 0 ; i < syncedBlockChainLists.length; i++) {
+		// }
+		// }
+		for (int i = 0; i < syncedBlockChainLists.length; i++) {
 			unsyncedBlockChainLists[i].writeToFile("BlockChain" + i + ".json");
 			unsyncedBlockChainLists[i].close();
 		}

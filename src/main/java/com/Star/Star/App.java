@@ -95,7 +95,6 @@ public class App {
 			dataGenProgressBar.step();
 		}
 		dataGenProgressBar.close();
-		;
 		System.out.println();
 		// testing tps for processing transactions
 		BlockTesterThreaded btt = new BlockTesterThreaded(syncedBlockChainLists, syncedTransactionPackages);

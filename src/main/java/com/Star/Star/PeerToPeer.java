@@ -110,7 +110,7 @@ public abstract class PeerToPeer {
 					this.toSend.remove(hash);
 					break;
 				} catch (Exception e) {
-					e.printStackTrace();
+					// e.printStackTrace();
 				}
 			}
 		}

@@ -142,7 +142,7 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	@Override
 	public boolean add(Object object) {
-		synchronized (this) {
+		// synchronized (this) {
 
 		if (object instanceof TransactionPackage) {
 			TransactionPackage transactionPackage = (TransactionPackage) object;
@@ -209,7 +209,7 @@ public class BlockChainList extends PeerToPeer implements List {
 			}
 			return true;
 		}
-	}
+	// }
 	}
 
 	public int getHeight() {

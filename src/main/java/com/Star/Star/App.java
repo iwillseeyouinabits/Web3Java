@@ -19,9 +19,9 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 60000;
+		int numToRun = 200;
 		int numChains = 2;
-		int maxDifficulty = 4;
+		int maxDifficulty = 1;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
@@ -42,7 +42,7 @@ public class App {
 		BlockChainList[] unsyncedBlockChainLists = new BlockChainList[numChains];
 
 		for (int i = 0; i < numChains; i++) {
-			unsyncedBlockChainLists[i] = new BlockChainList(kps[i].getPrivate(), kps[i].getPublic(), maxDifficulty,
+			unsyncedBlockChainLists[i] = new BlockChainList("Miner" + i, kps[i].getPrivate(), kps[i].getPublic(), maxDifficulty,
 					"127.0.0.1", 42069 + i,
 					peers[i], maxDifficulty);
 		}
@@ -115,7 +115,7 @@ public class App {
 		ProgressBar dataProcessedProgressBar = new ProgressBar(
 				"Data Processed By Network. Data Left to be Processed -> ", numToRun, ProgressBarStyle.ASCII);
 		while (dataProcessedProgressBar.getCurrent() < numToRun) {
-			dataProcessedProgressBar.stepTo(syncedBlockChainLists[0].size());
+			dataProcessedProgressBar.stepTo(unsyncedBlockChainLists[0].size());
 		}
 		dataProcessedProgressBar.close();
 		System.out.println();

@@ -1,9 +1,13 @@
 package com.Star.Star;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+
+import com.Star.Star.services.RSAService;
 
 /**
  * Wrapper class to allow for sending both transactions and blocks
@@ -11,7 +15,10 @@ import java.util.List;
 public class TCPPackage implements Serializable {
 	private final ServerAddress fromPeer;
 	private final boolean isBlock;
+	private final boolean isTransactionPackage;
+	private final boolean isBlockChain;
 	private Block block = null;
+	private Map<String, Block> blockChain = null;
 	private TransactionPackage tp = null;
 	private String hash;
 	
@@ -20,18 +27,40 @@ public class TCPPackage implements Serializable {
 		this.block = block;
 		this.hash = block.getHash();
 		this.isBlock = true;
+		this.isBlockChain = false;
+		this.isTransactionPackage = false;
 	}
 	
 	public TCPPackage(ServerAddress fromPeer, TransactionPackage tp) throws Exception {
 		this.fromPeer = fromPeer;
 		this.tp = tp;
 		this.hash += tp.getHash();
+		this.isTransactionPackage = true;
 		this.isBlock = false;
+		this.isBlockChain = false;
 	}
 	
-	public Object getObject () {
+	public TCPPackage(ServerAddress fromPeer, Map<String, Block> blockChain) throws Exception {
+		this.fromPeer = fromPeer;
+		this.blockChain = blockChain;
+		this.isBlockChain = true;
+		this.isTransactionPackage = false;
+		this.isBlock = false;
+		String prevHash = "000000000000000";
+		String hashes = prevHash;
+		while(this.blockChain.containsKey(prevHash)) {
+			Block curBlock = this.blockChain.get(prevHash);
+			prevHash = curBlock.getHash();
+			hashes += prevHash;
+		}
+		this.hash = new RSAService().getSHA256(hashes);
+	}
+	
+	public Object getObject () throws Exception {
 		if (this.isBlock) {
 			return this.block;
+		} else if (this.isBlockChain) {
+			return this.blockChain;
 		} else {
 			return this.tp;
 		}
@@ -43,5 +72,13 @@ public class TCPPackage implements Serializable {
 	
 	public boolean isBlock() {
 		return this.isBlock;
+	}
+	
+	public boolean isBlockChain() {
+		return this.isBlockChain;
+	}
+
+	public boolean isTransactionPackage() {
+		return this.isTransactionPackage;
 	}
 }

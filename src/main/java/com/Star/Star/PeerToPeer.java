@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -67,9 +68,15 @@ public abstract class PeerToPeer {
 			if(this.toSend.containsKey(tcpPack.getHash()))
 				System.out.println("Already Here!!!");
 			this.toSend.put(tcpPack.getHash(), tcpPack);
-		} else {
+		} else if (msg instanceof Block) {
 			Block block = (Block) msg;
 			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
+			if(this.toSend.containsKey(tcpPack.getHash()))
+				System.out.println("Already Here!!!");
+			this.toSend.put(tcpPack.getHash(), tcpPack);
+		} else {
+			Map<String, Block> blockChain = (Map<String, Block>) msg;
+			tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), blockChain);
 			if(this.toSend.containsKey(tcpPack.getHash()))
 				System.out.println("Already Here!!!");
 			this.toSend.put(tcpPack.getHash(), tcpPack);
@@ -90,6 +97,20 @@ public abstract class PeerToPeer {
 		while (!this.close) {
 			Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
 			Iterator<Entry<String, TCPPackage>> tcpIteratorBlocks = this.toSend.entrySet().iterator();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorBlockChains = this.toSend.entrySet().iterator();
+			while (tcpIteratorBlockChains.hasNext()) {
+				try {
+					TCPPackage tcpPack = tcpIteratorBlockChains.next().getValue();
+					if (tcpPack.isBlockChain()) {
+						out.writeObject(tcpPack);
+						String hash = (String) in.readObject();
+						System.out.println("Peer Recieved BlockChain: " + hash);
+						this.toSend.remove(hash);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			while (tcpIteratorBlocks.hasNext()) {
 				try {
 					TCPPackage tcpPack = tcpIteratorBlocks.next().getValue();
@@ -148,10 +169,10 @@ public abstract class PeerToPeer {
 				while (!close) {
 					Object objRecieved = in.readObject();
 					tcpPack = (TCPPackage) objRecieved;
-					String hash = tcpPack.getHash();
-					out.writeObject(hash);
 					Object msg = tcpPack.getObject();
 					onRecieveMessage(msg);
+					String hash = tcpPack.getHash();
+					out.writeObject(hash);
 				}
 				clientSocket.close();
 			} catch (Exception e) {

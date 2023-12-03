@@ -28,6 +28,7 @@ import static com.Star.Star.services.ValidationService.validate;
  */
 public class BlockChainList extends PeerToPeer implements List {
 
+	String name;
 	Block block;
 	Map<String, Block> blockChain;
 	String difficultyStr = "";
@@ -37,18 +38,21 @@ public class BlockChainList extends PeerToPeer implements List {
 	int size;
 	private List<String> recievedTransactionHashes;
 	private List<String> recievedBlockHashes;
+	private List<String> recievedBlockChainHashes;
 	private ServerAddress peer;
 	private String ip;
 	private int port;
 
-	public BlockChainList(PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer,
+	public BlockChainList(String name, PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer,
 			int maxTpChunckSize)
 			throws Exception {
 		super(ip, port, peer, maxTpChunckSize);
+		this.name = name;
 		block = new Block(pk, "000000000000000");
 		blockChain = Collections.synchronizedMap(new HashMap<String, Block>());
 		recievedTransactionHashes = Collections.synchronizedList(new ArrayList<String>());
 		recievedBlockHashes = Collections.synchronizedList(new ArrayList<String>());
+		recievedBlockChainHashes = Collections.synchronizedList(new ArrayList<String>());
 		for (int i = 0; i < difficulty; i++)
 			this.difficultyStr += "0";
 		this.difficultyNum = difficulty;
@@ -61,6 +65,18 @@ public class BlockChainList extends PeerToPeer implements List {
 		System.out.println();
 		System.out.println("Miners Public Key ->" + RSAService.pkToString(pk));
 		System.out.println();
+	}
+
+	public List<TransactionPackage> getTransactions(Map<String, Block> bc) {
+		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+
+		for (Entry<String, Block> b : bc.entrySet()) {
+			for (TransactionPackage t : b.getValue().getTransactions()) {
+				ts.add(t);
+			}
+		}
+
+		return ts;
 	}
 
 	public List<TransactionPackage> getTransactions() {
@@ -142,84 +158,159 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	@Override
 	public boolean add(Object object) {
-		// synchronized (this) {
-
-		if (object instanceof TransactionPackage) {
-			TransactionPackage transactionPackage = (TransactionPackage) object;
-			String tpHash = transactionPackage.getHash();
-			try {
-				if (!this.recievedTransactionHashes.contains(tpHash)) {
-					recievedTransactionHashes.add(tpHash);
-					this.size++;
-					block.addTransaction(transactionPackage);
-					block.signBlock(sk);
-					if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr) && !recievedBlockHashes.contains(block.getHash())) {
-						Block solvedBlock = block;
-						block = new Block(pk, block.getHash());
-						recievedBlockHashes.add(solvedBlock.getHash());
-						blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
-						if (peer != null) {
-							addToSend(solvedBlock);
+		synchronized (this) {
+			if (object instanceof TransactionPackage) {
+				TransactionPackage transactionPackage = (TransactionPackage) object;
+				String tpHash = transactionPackage.getHash();
+				try {
+					if (!this.recievedTransactionHashes.contains(tpHash)) {
+						recievedTransactionHashes.add(tpHash);
+						this.size++;
+						block.addTransaction(transactionPackage);
+						block.signBlock(sk);
+						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
+								&& !recievedBlockHashes.contains(block.getHash())) {
+							Block solvedBlock = block;
+							block = new Block(pk, block.getHash());
+							recievedBlockHashes.add(solvedBlock.getHash());
+							blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
+							if (peer != null) {
+								addToSend(solvedBlock);
+							}
 						}
-					} else {
 						if (peer != null) {
 							addToSend(transactionPackage);
 						}
 					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					return false;
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("## " + e.getMessage());
-				return false;
-			}
-			return true;
-		} else {
-			try {
-				Block recBlock = (Block) object;
-				String recBlockHash = recBlock.getHash();
-				if (!recievedBlockHashes.contains(recBlockHash)) {
-					recievedBlockHashes.add(recBlockHash);
-					if (recBlock.getBlockBody().getPrevBlockHash().equals(block.getBlockBody().getPrevBlockHash())) {
-						Block remainderCurBlock = new Block(pk, recBlock.getHash());
-						List<TransactionPackage> curBlockTransactions = block.getTransactions();
-						List<TransactionPackage> recBlockTransactions = recBlock.getTransactions();
-						for (int i = 0; i < curBlockTransactions.size(); i++) {
-							TransactionPackage tp = curBlockTransactions.get(i);
-							if (!recBlockTransactions.contains(tp)) {
-								remainderCurBlock.addTransaction(tp);
+			} else if (object instanceof Block) {
+				try {
+					Block recBlock = (Block) object;
+					String recBlockHash = recBlock.getHash();
+					if (!recievedBlockHashes.contains(recBlockHash)) {
+						recievedBlockHashes.add(recBlockHash);
+						if (recBlock.getBlockBody().getPrevBlockHash()
+								.equals(block.getBlockBody().getPrevBlockHash())) {
+							Block remainderCurBlock = new Block(pk, recBlock.getHash());
+							List<TransactionPackage> curBlockTransactions = block.getTransactions();
+							List<TransactionPackage> recBlockTransactions = recBlock.getTransactions();
+							for (int i = 0; i < curBlockTransactions.size(); i++) {
+								TransactionPackage tp = curBlockTransactions.get(i);
+								if (!recBlockTransactions.contains(tp)) {
+									remainderCurBlock.addTransaction(tp);
+								}
 							}
+							for (int i = 0; i < recBlockTransactions.size(); i++) {
+								TransactionPackage tp = recBlockTransactions.get(i);
+								recievedTransactionHashes.add(tp.getHash());
+							}
+							this.size = this.size - block.getTransactions().size() + recBlockTransactions.size()
+									+ remainderCurBlock.getTransactions().size();
+							blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
+							block = remainderCurBlock;
+							if (peer != null)
+								addToSend(recBlock);
+						} else {
+							addToSend(blockChain);
+							System.out.println();
+							System.out.println(name + " Prev Hash Does Not Match! ->"
+									+ recBlock.blockBody.getPrevBlockHash() + " "
+									+ block.blockBody.getPrevBlockHash() + " | "
+									+ getEntireHashOfBlockChain(this.blockChain));
 						}
-						for (int i = 0; i < recBlockTransactions.size(); i++) {
-							TransactionPackage tp = recBlockTransactions.get(i);
-							recievedTransactionHashes.add(tp.getHash());
-						}
-						this.size = this.size - block.getTransactions().size() + recBlockTransactions.size()
-								+ remainderCurBlock.getTransactions().size();
-						blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
-						block = remainderCurBlock;
-						if (peer != null)
-							addToSend(recBlock);
-					} else {
-						System.out.println("Prev Hash Does Not Match! ->" + recBlock.getBlockBody().getPrevBlockHash() + " " + recBlock.getHash() + " | "
-								+ block.getBlockBody().getPrevBlockHash() + " " + block.getHash());
 					}
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
+			} else {
+				try {
+					Map<String, Block> recBlockChain = (Map) object;
+					List<Block> recvBlockChainList = getBlockChainList(recBlockChain);
+					List<Block> curBlockChainList = getBlockChainList();
+					List<TransactionPackage> recvBlockChainTransactions = this.getTransactions(recBlockChain);
+					List<TransactionPackage> curBlockChainTransactions = this.getTransactions();
+					String recBlockChainHash = getEntireHashOfBlockChain(recBlockChain);
+					System.out.println();
+					System.out.println();
+					System.out.println();
+					System.out.println(name + " Recieved Block Chain Hash :> " + recBlockChainHash + " " + recvBlockChainList.size() + " " + curBlockChainList.size());
+					//test if block chain has already been recieved
+					if (!recievedBlockChainHashes.contains(recBlockChainHash)) {
+						recievedBlockChainHashes.add(recBlockChainHash);
+						//test what to do what to do to block chain based on it's relative size
+						if (recvBlockChainList.size() > curBlockChainList.size()) {
+							//setup remainder block
+							Block remainderCurBlock = new Block(pk,
+									recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
+							for (int i = 0; i < curBlockChainTransactions.size(); i++) {
+								TransactionPackage tp = curBlockChainTransactions.get(i);
+								if (!recvBlockChainTransactions.contains(tp)) {
+									remainderCurBlock.addTransaction(tp);
+								}
+							}
+							for (int i = 0; i < recvBlockChainTransactions.size(); i++) {
+								TransactionPackage tp = recvBlockChainTransactions.get(i);
+								recievedTransactionHashes.add(tp.getHash());
+							}
+							blockChain = recBlockChain;
+							block = remainderCurBlock;
+							this.size = this.getTransactions().size();
+							System.out.println(name + " Replaced Block Chain With Longer One  :=> " + recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
+							if (peer != null)
+								addToSend(recBlockChain);
+						} else if (recvBlockChainList.size() < curBlockChainList.size()) {
+							System.out.println(
+									name + " Sent Current Chain To Peer Because It Is Longer Than The Block Chain Recieved  :=> " + recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
+							addToSend(this.blockChain);
+						} else {
+							System.out.println(name + " Recieved Same Size Block Chain  :=> " + recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
+						}
+					}
+					System.out.println();
+					System.out.println();
+					System.out.println();
+				} catch (Exception e) {
+					System.out.println("FAILURE IN ADD!!!");
+					e.printStackTrace();
+				}
 			}
 			return true;
 		}
-	// }
+	}
+
+	private String getEntireHashOfBlockChain(Map<String, Block> bc) throws NoSuchAlgorithmException {
+		String prevHash = "000000000000000";
+		String hashes = prevHash;
+		while (bc.containsKey(prevHash)) {
+			Block curBlock = bc.get(prevHash);
+			prevHash = curBlock.getHash();
+			hashes += prevHash;
+		}
+		return new RSAService().getSHA256(hashes);
 	}
 
 	public int getHeight() {
 		return blockChain.size();
 	}
 
+	public ArrayList<Block> getBlockChainList(Map<String, Block> bc) throws Exception {
+		ArrayList<Block> blockList = new ArrayList<Block>();
+		String prevHash = "000000000000000";
+		while (bc.containsKey(prevHash)) {
+			Block curBlock = bc.get(prevHash);
+			prevHash = curBlock.getHash();
+			blockList.add(curBlock);
+		}
+		return blockList;
+	}
+
 	public ArrayList<Block> getBlockChainList() throws Exception {
 		ArrayList<Block> blockList = new ArrayList<Block>();
 		String prevHash = "000000000000000";
-		while(this.blockChain.containsKey(prevHash)) {
+		while (this.blockChain.containsKey(prevHash)) {
 			Block curBlock = this.blockChain.get(prevHash);
 			prevHash = curBlock.getHash();
 			blockList.add(curBlock);
@@ -231,7 +322,7 @@ public class BlockChainList extends PeerToPeer implements List {
 		ArrayList<String> hashes = new ArrayList<String>();
 		hashes.add(this.block.getHash());
 		String prevHash = "000000000000000";
-		while(this.blockChain.containsKey(prevHash)) {
+		while (this.blockChain.containsKey(prevHash)) {
 			Block curBlock = this.blockChain.get(prevHash);
 			prevHash = curBlock.getHash();
 			hashes.add(prevHash);

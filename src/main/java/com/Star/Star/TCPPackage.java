@@ -1,6 +1,7 @@
 package com.Star.Star;
 
 import java.io.Serializable;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,14 +18,16 @@ public class TCPPackage implements Serializable {
 	private final boolean isBlock;
 	private final boolean isTransactionPackage;
 	private final boolean isBlockChain;
-	private Block block = null;
-	private Map<String, Block> blockChain = null;
-	private TransactionPackage tp = null;
-	private String hash;
+	private final Block block;
+	private final BlockChainTCPPackage blockChain;
+	private final TransactionPackage tp;
+	private final String hash;
 	
 	public TCPPackage(ServerAddress fromPeer, Block block) throws Exception {
 		this.fromPeer = fromPeer;
 		this.block = block;
+		this.blockChain = null;
+		this.tp = null;
 		this.hash = block.getHash();
 		this.isBlock = true;
 		this.isBlockChain = false;
@@ -34,26 +37,23 @@ public class TCPPackage implements Serializable {
 	public TCPPackage(ServerAddress fromPeer, TransactionPackage tp) throws Exception {
 		this.fromPeer = fromPeer;
 		this.tp = tp;
-		this.hash += tp.getHash();
+		this.block = null;
+		this.blockChain = null;
+		this.hash = tp.getHash();
 		this.isTransactionPackage = true;
 		this.isBlock = false;
 		this.isBlockChain = false;
 	}
 	
-	public TCPPackage(ServerAddress fromPeer, Map<String, Block> blockChain) throws Exception {
+	public TCPPackage(ServerAddress fromPeer, BlockChainTCPPackage blockChain) throws Exception {
 		this.fromPeer = fromPeer;
 		this.blockChain = blockChain;
+		this.tp = null;
+		this.block = null;
 		this.isBlockChain = true;
 		this.isTransactionPackage = false;
 		this.isBlock = false;
-		String prevHash = "000000000000000";
-		String hashes = prevHash;
-		while(this.blockChain.containsKey(prevHash)) {
-			Block curBlock = this.blockChain.get(prevHash);
-			prevHash = curBlock.getHash();
-			hashes += prevHash;
-		}
-		this.hash = new RSAService().getSHA256(hashes);
+		this.hash = this.blockChain.getEntireHashOfBlockChain();
 	}
 	
 	public Object getObject () throws Exception {
@@ -81,4 +81,5 @@ public class TCPPackage implements Serializable {
 	public boolean isTransactionPackage() {
 		return this.isTransactionPackage;
 	}
+
 }

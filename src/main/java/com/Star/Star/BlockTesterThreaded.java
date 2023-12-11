@@ -18,6 +18,6 @@ public class BlockTesterThreaded implements Runnable {
 	public void run() {
 		int index = this.transactionPackages.size();
 		TransactionPackage tp = transactionPackages.remove(0);
-		this.blockChain[index%blockChain.length].add(tp);
+		this.blockChain[(int)(Math.random()*blockChain.length)].add(tp);
 	}
 }

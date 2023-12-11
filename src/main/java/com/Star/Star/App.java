@@ -19,9 +19,9 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 60000;
-		int numChains = 2;
-		int maxDifficulty = 3;
+		int numToRun = 1000;
+		int numChains = 3;
+		int maxDifficulty = 4;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
@@ -31,20 +31,28 @@ public class App {
 		for (int i = 0; i < numChains; i++) {
 			kps[i] = new RSAService().generateKeyPair();
 		}
-		ServerAddress[] peers = new ServerAddress[numChains];
-		if (numChains > 1) {
-			for (int i = 0; i < numChains; i++) {
-				peers[i] = new ServerAddress("127.0.0.1", 42069 + ((i + 1) % numChains));
-			}
-		}
 
 		// Initiating synchronised blockchains for each peer
 		BlockChainList[] unsyncedBlockChainLists = new BlockChainList[numChains];
-
+		int[] peersItr = new int[numChains];
 		for (int i = 0; i < numChains; i++) {
+
+			ServerAddress[] peers = null;
+			if (numChains > 1) {
+				int peerItr = 0;
+				peers = new ServerAddress[numChains-1];
+				for (int j = 0; j < numChains; j++) {
+					if (j != i) {
+						peers[peerItr] = new ServerAddress("127.0.0.1", 42069 + ((numChains-1)*j) + peersItr[j]);
+						peersItr[j]++;
+						peerItr++;
+					}
+				}
+			}
+
 			unsyncedBlockChainLists[i] = new BlockChainList("Miner" + i, kps[i].getPrivate(), kps[i].getPublic(), maxDifficulty,
-					"127.0.0.1", 42069 + i,
-					peers[i], maxDifficulty);
+					"127.0.0.1", 42069 + (i*(numChains-1)),
+					peers, maxDifficulty);
 		}
 
 		if (numChains > 1)

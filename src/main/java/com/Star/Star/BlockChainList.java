@@ -40,14 +40,14 @@ public class BlockChainList extends PeerToPeer implements List {
 	private List<String> recievedTransactionHashes;
 	private List<String> recievedBlockHashes;
 	private List<String> recievedBlockChainHashes;
-	private ServerAddress peer;
+	private ServerAddress[] peers;
 	private String ip;
 	private int port;
 
-	public BlockChainList(String name, PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress peer,
+	public BlockChainList(String name, PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress[] peers,
 			int maxTpChunckSize)
 			throws Exception {
-		super(ip, port, peer, maxTpChunckSize);
+		super(name, ip, port, peers, maxTpChunckSize);
 		this.name = name;
 		block = new Block(pk, "000000000000000");
 		blockChain = Collections.synchronizedMap(new HashMap<String, Block>());
@@ -60,7 +60,7 @@ public class BlockChainList extends PeerToPeer implements List {
 		this.pk = pk;
 		this.sk = sk;
 		this.size = 0;
-		this.peer = peer;
+		this.peers = peers;
 		this.ip = ip;
 		this.port = port;
 		System.out.println();
@@ -175,11 +175,11 @@ public class BlockChainList extends PeerToPeer implements List {
 							block = new Block(pk, block.getHash());
 							recievedBlockHashes.add(solvedBlock.getHash());
 							blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
-							if (peer != null) {
+							if (peers != null) {
 								addToSend(solvedBlock);
 							}
 						}
-						if (peer != null) {
+						if (peers != null) {
 							addToSend(transactionPackage);
 						}
 					}
@@ -212,7 +212,7 @@ public class BlockChainList extends PeerToPeer implements List {
 									+ remainderCurBlock.getTransactions().size();
 							blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
 							block = remainderCurBlock;
-							if (peer != null)
+							if (peers != null)
 								addToSend(recBlock);
 						} else {
 							// System.out.println();

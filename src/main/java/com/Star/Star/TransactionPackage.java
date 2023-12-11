@@ -3,8 +3,12 @@ package com.Star.Star;
 import com.Star.Star.services.RSAService;
 
 import java.io.Serializable;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class TransactionPackage implements Serializable {
 	final double gassFee;
@@ -19,13 +23,6 @@ public class TransactionPackage implements Serializable {
 		this.transaction = transaction;
 	}
 
-	public TransactionPackage(TransactionPackage rhs) throws Exception {
-		this.gassFee = rhs.gassFee;
-		this.hash = rhs.hash;
-		this.signature = rhs.signature;
-		this.transaction = rhs.transaction.getDeepCopy();
-	}
-
 	public boolean verifySigner() throws Exception {
 		return RSAService.verify(this.hash, this.signature, this.transaction.getSigner());
 	}
@@ -35,9 +32,13 @@ public class TransactionPackage implements Serializable {
 		return signer;
 	}
 
-	public Transaction getTransaction() { return transaction;}
+	public Transaction getTransaction() { 
+		return transaction;
+	}
 
-	public double getGassFee() {return gassFee;}
+	public double getGassFee() {
+		return gassFee;
+	}
 
 	public String getHash() {
 		return this.hash;
@@ -46,5 +47,22 @@ public class TransactionPackage implements Serializable {
 	public boolean equals(Object o) {
 		TransactionPackage rhs = (TransactionPackage) o;
 		return this.hash.equals(rhs.getHash());
+	}
+	
+	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
+		JSONObject json = new JSONObject();
+		String transactionType = "";
+		if (transaction instanceof CurrencyTransaction) {
+			transactionType = "Currency";
+		} else if (transaction instanceof HttpTransaction) {
+			transactionType = "Http";
+		} else if (transaction instanceof ShellTransaction) {
+			transactionType = "Shell";
+		} 
+		json.put("Transaction Type", transactionType);
+		json.put("Signature", this.signature);
+		json.put("Hash", this.transaction.getHash());
+		json.put("Body", this.transaction.getJson());
+		return json;
 	}
 }

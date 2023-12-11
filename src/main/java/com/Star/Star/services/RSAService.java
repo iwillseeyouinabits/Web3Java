@@ -2,6 +2,7 @@ package com.Star.Star.services;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -10,8 +11,12 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
-import java.util.Base64;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.Cipher;
+
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 
 /**
  * Service layer that contains RSA encryption logic
@@ -25,11 +30,25 @@ public class RSAService {
 	}
 	
 	public static String pkToString(PublicKey pk) {
-		return Base64.getEncoder().encodeToString(pk.getEncoded());
+		return Hex.encodeHexString(pk.getEncoded());
 	}
 	
 	public String skToString(PrivateKey sk) {
-		return Base64.getEncoder().encodeToString(sk.getEncoded());
+		return Hex.encodeHexString(sk.getEncoded());
+	}
+	
+	public static PublicKey stringToPk(String pkString) throws InvalidKeySpecException, NoSuchAlgorithmException, DecoderException {
+		byte[] byteKey = Hex.decodeHex(pkString);
+		X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(byteKey);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePublic(X509publicKey);
+	}
+	
+	public static PrivateKey stringToSk(String skString) throws InvalidKeySpecException, NoSuchAlgorithmException, DecoderException {
+		byte[] byteKey = Hex.decodeHex(skString);
+		X509EncodedKeySpec X509seceretKey = new X509EncodedKeySpec(byteKey);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePrivate(X509seceretKey);
 	}
 	
 	public String encrypt(String plainText, PublicKey publicKey) throws Exception {
@@ -38,11 +57,11 @@ public class RSAService {
 
 	    byte[] cipherText = encryptCipher.doFinal(plainText.getBytes());
 
-	    return Base64.getEncoder().encodeToString(cipherText);
+	    return Hex.encodeHexString(cipherText);
 	}
 	
 	public String decrypt(String cipherText, PrivateKey privateKey) throws Exception {
-	    byte[] bytes = Base64.getDecoder().decode(cipherText);
+	    byte[] bytes = Hex.decodeHex(cipherText);
 
 	    Cipher decriptCipher = Cipher.getInstance("RSA");
 	    decriptCipher.init(Cipher.DECRYPT_MODE, privateKey);
@@ -57,7 +76,7 @@ public class RSAService {
 
 	    byte[] signature = privateSignature.sign();
 
-	    return Base64.getEncoder().encodeToString(signature);
+	    return Hex.encodeHexString(signature);
 	}
 	
 	public static boolean verify(String plainText, String signature, PublicKey publicKey) throws Exception {
@@ -65,7 +84,7 @@ public class RSAService {
 	    publicSignature.initVerify(publicKey);
 	    publicSignature.update(plainText.getBytes());
 
-	    byte[] signatureBytes = Base64.getDecoder().decode(signature);
+	    byte[] signatureBytes = Hex.decodeHex(signature);
 
 	    return publicSignature.verify(signatureBytes);
 	}

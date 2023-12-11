@@ -8,6 +8,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
+import org.json.JSONObject;
+
+import com.Star.Star.services.RSAService;
+
 import static com.Star.Star.services.TransactionService.getCurrencyTransactionHash;
 
 /**
@@ -15,26 +19,18 @@ import static com.Star.Star.services.TransactionService.getCurrencyTransactionHa
  */
 public class CurrencyTransaction extends Transaction implements Serializable{
 
+	final String uuid;
 	final PublicKey senderAdr;
 	final PublicKey recipientAdr;
 	final int tokens;
 
-	public CurrencyTransaction(PublicKey senderAdr, PublicKey recipientAdr, int tokens) {
+	public CurrencyTransaction(PublicKey senderAdr, PublicKey recipientAdr, int tokens, String uuid) {
 		super();
 		this.senderAdr = senderAdr;
 		this.recipientAdr = recipientAdr;
 		this.tokens = tokens;
+		this.uuid = uuid;
 	}
-	
-	public CurrencyTransaction(CurrencyTransaction rhs) throws InvalidKeySpecException, NoSuchAlgorithmException {
-		this.senderAdr = KeyFactory.getInstance("RSA").generatePublic(
-				new X509EncodedKeySpec(rhs.senderAdr.getEncoded()));
-		this.recipientAdr = KeyFactory.getInstance("RSA").generatePublic(
-				new X509EncodedKeySpec(rhs.recipientAdr.getEncoded()));
-		this.tokens = rhs.tokens;
-		this.uuid =  new UUID(rhs.uuid.getMostSignificantBits(), rhs.uuid.getLeastSignificantBits());
-	}
-	
 	
 	@Override
 	public long byteSize() {
@@ -53,16 +49,30 @@ public class CurrencyTransaction extends Transaction implements Serializable{
 	}
 
 
-	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
-		return new CurrencyTransaction(this);
-	}
 
 	public int getTokens() {
 		return tokens;
 	}
 
 
-	public PublicKey getSenderAdr() { return senderAdr; }
+	public PublicKey getSenderAdr() { 
+		return senderAdr; 
+	}
 
-	public PublicKey getRecipientAdr() { return recipientAdr; }
+	public PublicKey getRecipientAdr() { 
+		return recipientAdr;
+	}
+
+	public String getUuid() {
+		return uuid;
+	}
+
+	public JSONObject getJson() {
+		JSONObject json = new JSONObject();
+		json.put("Sender Address", RSAService.pkToString(this.senderAdr));
+		json.put("Recipient Address", RSAService.pkToString(this.recipientAdr));
+		json.put("Tokens", this.tokens);
+		json.put("UUID", this.getUuid().toString());
+		return json;
+	}
 }

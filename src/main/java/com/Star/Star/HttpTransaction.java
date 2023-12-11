@@ -7,6 +7,10 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
+import org.json.JSONObject;
+
+import com.Star.Star.services.RSAService;
+
 import static com.Star.Star.services.TransactionService.getHTTPTransactionHash;
 
 /**
@@ -14,26 +18,20 @@ import static com.Star.Star.services.TransactionService.getHTTPTransactionHash;
  */
 public class HttpTransaction extends Transaction implements Serializable {
 
+	final String uuid;
 	final PublicKey clientAdr;
 	final PublicKey websiteAdr;
 	final PublicKey hostAdr;
 	final String postJson;
 	
-	public HttpTransaction(PublicKey clientAdr, PublicKey websiteAdr, PublicKey hostAdr, String postJson) {
+	public HttpTransaction(PublicKey clientAdr, PublicKey websiteAdr, PublicKey hostAdr, String postJson, String uuid) {
 		super();
 		this.clientAdr = clientAdr;
 		this.websiteAdr = websiteAdr;
 		this.hostAdr = hostAdr;
 		this.postJson = postJson;
-	}
-	
-	public HttpTransaction(HttpTransaction rhs) throws InvalidKeySpecException, NoSuchAlgorithmException {
-		this.clientAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.clientAdr.getEncoded()));
-		this.websiteAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.websiteAdr.getEncoded()));
-		this.hostAdr = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(rhs.hostAdr.getEncoded()));
-		this.postJson = rhs.postJson;
-	}
-	
+		this.uuid = uuid;
+	}	
 	
 	@Override
 	public long byteSize() {
@@ -49,10 +47,6 @@ public class HttpTransaction extends Transaction implements Serializable {
 	public String getHash() throws NoSuchAlgorithmException {
 		return getHTTPTransactionHash(this);
 	}
-	
-	public Transaction getDeepCopy() throws InvalidKeySpecException, NoSuchAlgorithmException {
-		return new HttpTransaction(this);
-	}
 
 	public String getPostJson() { return this.postJson;}
 
@@ -66,6 +60,20 @@ public class HttpTransaction extends Transaction implements Serializable {
 
 	public PublicKey getHostAdr() {
 		return hostAdr;
+	}
+
+	public String getUuid() {
+		return uuid;
+	}
+
+	public JSONObject getJson() {
+		JSONObject json = new JSONObject();
+		json.put("Client Address", RSAService.pkToString(this.clientAdr));
+		json.put("Website Address", RSAService.pkToString(this.websiteAdr));
+		json.put("Host Address", RSAService.pkToString(this.hostAdr));
+		json.put("Post Request", this.postJson);
+		json.put("UUID", this.getUuid().toString());
+		return json;
 	}
 
 }

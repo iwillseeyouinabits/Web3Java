@@ -63,9 +63,6 @@ public class BlockChainList extends PeerToPeer implements List {
 		this.peers = peers;
 		this.ip = ip;
 		this.port = port;
-		System.out.println();
-		System.out.println("Miners Public Key ->" + RSAService.pkToString(pk));
-		System.out.println();
 	}
 
 	public List<TransactionPackage> getTransactions(Map<String, Block> bc) {
@@ -390,9 +387,6 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	
 	public void onRecieveMessage(Object msg) throws Exception {
-		if (msg instanceof Map) {
-			// System.out.println("Starting to process BlockChain: " + this.getEntireHashOfBlockChain((Map<String, Block>) msg));
-		}
 		this.add(msg);
 	}
 

@@ -38,7 +38,6 @@ public abstract class PeerToPeer {
 		this.sendSockets = new Socket[this.peers.length];
 		this.serverSockets = new ServerSocket[this.peers.length];
 		for (int i = 0; i < this.peers.length; i++) {
-			System.out.println(name +  " - " + (port + i));
 			this.serverSockets[i] = new ServerSocket(port+i);
 		}
 
@@ -56,7 +55,6 @@ public abstract class PeerToPeer {
 	public void connectToPeer() {
 		try {
 			for (int i = 0; i < peers.length; i++) {
-				System.out.println(this.name + " " + this.peers[i].getPort());
 				this.sendSockets[i] = new Socket(this.peers[i].getIp(), this.peers[i].getPort());
 			}
 		} catch (Exception e) {
@@ -78,15 +76,15 @@ public abstract class PeerToPeer {
 	public void addToSend(Object msg) throws Exception {
 		if (msg instanceof TransactionPackage) {
 			TransactionPackage tp = (TransactionPackage) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tp);
+			TCPPackage tcpPack = new TCPTransactionPackagePackage(new ServerAddress(this.ip, this.port), tp);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} else if (msg instanceof Block) {
 			Block block = (Block) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
+			TCPPackage tcpPack = new TCPBlockPackage(new ServerAddress(this.ip, this.port), block);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} else if (msg instanceof BlockChainTCPPackage) {
 			BlockChainTCPPackage bc = (BlockChainTCPPackage) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), bc);
+			TCPPackage tcpPack = new TCPBlockChainPackage(new ServerAddress(this.ip, this.port), bc);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 			// System.out.println("Added BlockChain To Send Queue "
 			// 		+ tcpPack.getHash());
@@ -111,7 +109,7 @@ public abstract class PeerToPeer {
 			while (tcpIteratorBlockChains.hasNext()) {
 				try {
 					TCPPackage tcpPack = tcpIteratorBlockChains.next().getValue();
-					if (tcpPack.isBlockChain()) {
+					if (tcpPack instanceof TCPBlockChainPackage) {
 						for (int i = 0; i < peers.length; i++) {
 							outs[i].writeObject(tcpPack);
 							String hash = (String) ins[i].readObject();
@@ -125,7 +123,7 @@ public abstract class PeerToPeer {
 			while (tcpIteratorBlocks.hasNext()) {
 				try {
 					TCPPackage tcpPack = tcpIteratorBlocks.next().getValue();
-					if (tcpPack.isBlock()) {
+					if (tcpPack instanceof TCPBlockPackage) {
 						for (int i = 0; i < peers.length; i++) {
 							outs[i].writeObject(tcpPack);
 							String hash = (String) ins[i].readObject();
@@ -188,7 +186,7 @@ public abstract class PeerToPeer {
 				while (!close) {
 					final TCPPackage tcpPack = (TCPPackage) in.readObject();
 					String hash = tcpPack.getHash();
-					Object msg = tcpPack.getObject();
+					Object msg = tcpPack.getPackage();
 					out.writeObject(hash);
 					onRecieveMessage(msg);
 				}

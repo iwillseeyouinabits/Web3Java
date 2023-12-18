@@ -19,9 +19,9 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 1000;
-		int numChains = 3;
-		int maxDifficulty = 4;
+		int numToRun = 10000;
+		int numChains = 2;
+		int maxDifficulty = 2;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 

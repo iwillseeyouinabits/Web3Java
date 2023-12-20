@@ -18,6 +18,7 @@ import static com.Star.Star.services.DateService.getCurrentTime;
 public class BlockBody implements Serializable {
 	final String prevBlockHash;
 	final PublicKey minerPk;
+	private String nounce;
 	long timestamp;
 	List<TransactionPackage> block;
 	String hashableToken;
@@ -45,6 +46,9 @@ public class BlockBody implements Serializable {
 		return RSAService.getSHA256(getHashableToken());
 	}
 
+	public void setNounce(String n) {
+		this.nounce = n;
+	}
 	
 	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
 		JSONObject json = new JSONObject();
@@ -55,17 +59,13 @@ public class BlockBody implements Serializable {
 		json.put("Previous Block Hash", this.prevBlockHash);
 		json.put("Miner Address", RSAService.pkToString(this.minerPk));
 		json.put("Hash", this.getHash());
+		json.put("Nounce", this.nounce);
 		json.put("Transactions", transactions);
 		return json;
 	}
 	
 	private String getHashableToken() throws NoSuchAlgorithmException {
-		// String token = this.prevBlockHash + RSAService.getSHA256(RSAService.pkToString(this.minerPk));
-		// for (int i = 0; i < block.size(); i++) {
-		// 	token += block.get(i).getHash();
-		// }
-		// return token;
-		return this.hashableToken;
+		return this.nounce + this.hashableToken;
 	}
 
 }

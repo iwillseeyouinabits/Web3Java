@@ -9,7 +9,7 @@ public class TCPBlockPackage extends TCPPackage implements Serializable {
 	private final Block block;
 	private final String hash;
 	
-	public TCPBlockPackage(ServerAddress fromPeer, Block block) throws Exception {
+	public TCPBlockPackage(Block block) throws Exception {
 		super();
 		this.block = block;
 		this.hash = block.getHash();

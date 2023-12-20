@@ -31,6 +31,10 @@ public class Block implements Serializable{
 		this.blockBody.timestamp = getCurrentTime();
 		this.blockSig = RSAService.sign(this.blockBody.getHash(), sk);
 	}
+
+	public void setNounce(String n) {
+		this.blockBody.setNounce(n);
+	}
 	
 	public String getHash() throws NoSuchAlgorithmException { 
 		return this.blockBody.getHash(); 

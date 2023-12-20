@@ -43,7 +43,7 @@ public class App {
 				peers = new ServerAddress[numChains-1];
 				for (int j = 0; j < numChains; j++) {
 					if (j != i) {
-						peers[peerItr] = new ServerAddress("127.0.0.1", 42069 + ((numChains-1)*j) + peersItr[j]);
+						peers[peerItr] = new ServerAddress("127.0.0.1", 42069 + ((numChains-1)*j) + peersItr[j], kps[j].getPublic());
 						peersItr[j]++;
 						peerItr++;
 					}

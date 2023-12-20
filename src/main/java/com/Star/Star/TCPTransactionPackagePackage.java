@@ -10,7 +10,7 @@ public class TCPTransactionPackagePackage extends TCPPackage implements Serializ
 	private final String hash;
 	
 	
-	public TCPTransactionPackagePackage(ServerAddress fromPeer, TransactionPackage tp) throws Exception {
+	public TCPTransactionPackagePackage(TransactionPackage tp) throws Exception {
 		this.tp = tp;
 		this.hash = tp.getHash();
 	}

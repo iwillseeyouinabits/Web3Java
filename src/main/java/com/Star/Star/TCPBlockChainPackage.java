@@ -9,7 +9,7 @@ public class TCPBlockChainPackage extends TCPPackage implements Serializable {
 	private final BlockChainTCPPackage blockChain;
 	private final String hash;
 
-	public TCPBlockChainPackage(ServerAddress fromPeer, BlockChainTCPPackage blockChain) throws Exception {
+	public TCPBlockChainPackage(BlockChainTCPPackage blockChain) throws Exception {
 		super();
 		this.blockChain = blockChain;
 		this.hash = this.blockChain.getEntireHashOfBlockChain();

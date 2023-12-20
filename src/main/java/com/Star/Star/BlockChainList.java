@@ -47,7 +47,7 @@ public class BlockChainList extends PeerToPeer implements List {
 	public BlockChainList(String name, PrivateKey sk, PublicKey pk, int difficulty, String ip, int port, ServerAddress[] peers,
 			int maxTpChunckSize)
 			throws Exception {
-		super(name, ip, port, peers, maxTpChunckSize);
+		super(pk, sk, name, ip, port, peers, maxTpChunckSize);
 		this.name = name;
 		block = new Block(pk, "000000000000000");
 		blockChain = Collections.synchronizedMap(new HashMap<String, Block>());

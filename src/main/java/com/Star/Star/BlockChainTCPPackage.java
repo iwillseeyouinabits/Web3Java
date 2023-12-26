@@ -20,7 +20,7 @@ public class BlockChainTCPPackage implements Serializable {
         this.blockChainList = Collections.synchronizedList(this.getBlockChainList(blockChain));
     }
 
-    public Map<String, Block> getBlockChain() throws NoSuchAlgorithmException {
+    public Map<String, Block> getBlockChain() throws Exception {
         Map<String, Block> bc = new HashMap<String, Block>();
         String prevHash = "000000000000000";
         for (Block block : this.blockChainList) {
@@ -45,7 +45,7 @@ public class BlockChainTCPPackage implements Serializable {
 		return this.blockChainList;
 	}
 
-    public String getEntireHashOfBlockChain() throws NoSuchAlgorithmException {
+    public String getEntireHashOfBlockChain() throws Exception {
 		Map<String, Block> bc = getBlockChain();
         String prevHash = "000000000000000";
 		String hashes = prevHash;
@@ -59,7 +59,7 @@ public class BlockChainTCPPackage implements Serializable {
 
     
 
-	public List<TransactionPackage> getTransactions() throws NoSuchAlgorithmException {
+	public List<TransactionPackage> getTransactions() throws Exception {
 		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
         Map<String, Block> bc = getBlockChain();
 		for (Entry<String, Block> b : bc.entrySet()) {

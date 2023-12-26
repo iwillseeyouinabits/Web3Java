@@ -36,7 +36,7 @@ public class Block implements Serializable{
 		this.blockBody.setNounce(n);
 	}
 	
-	public String getHash() throws NoSuchAlgorithmException { 
+	public String getHash() throws Exception { 
 		return this.blockBody.getHash(); 
 	}
 
@@ -48,7 +48,7 @@ public class Block implements Serializable{
 		return this.blockBody.block;
 	}
 
-	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
+	public JSONObject getJson() throws Exception {
 		JSONObject json = new JSONObject();
 		json.put("Hash", this.getHash());
 		json.put("Miner Signature", this.blockSig);

@@ -156,7 +156,6 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	@Override
 	public boolean add(Object object) {
-		synchronized (this) {
 			if (object instanceof TransactionPackage) {
 				TransactionPackage transactionPackage = (TransactionPackage) object;
 				String tpHash = transactionPackage.getHash();
@@ -165,6 +164,9 @@ public class BlockChainList extends PeerToPeer implements List {
 						recievedTransactionHashes.add(tpHash);
 						this.size++;
 						block.addTransaction(transactionPackage);
+						TCPPackage tcpPackage = new TCPTransactionPackagePackage(transactionPackage);
+						Nounce genNounce = this.sendTCP(tcpPackage);
+						block.setNounce(genNounce.getNounce());
 						block.signBlock(sk);
 						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
 								&& !recievedBlockHashes.contains(block.getHash())) {
@@ -176,9 +178,9 @@ public class BlockChainList extends PeerToPeer implements List {
 								addToSend(solvedBlock);
 							}
 						}
-						if (peers != null) {
-							addToSend(transactionPackage);
-						}
+						// if (peers != null) {
+						// 	addToSend(transactionPackage);
+						// }
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -247,7 +249,7 @@ public class BlockChainList extends PeerToPeer implements List {
 								TransactionPackage tp = recvBlockChainTransactions.get(i);
 								recievedTransactionHashes.add(tp.getHash());
 							}
-							blockChain = recBlockChain.getBlockChain();
+							blockChain = Collections.synchronizedMap(recBlockChain.getBlockChain());
 							block = remainderCurBlock;
 							this.size = this.getTransactions().size();
 							// System.out.println(name + " Replaced Block Chain With Longer One  :=> " + curBlockChainList.size() + " " + recvBlockChainList.size() + " " + recBlockChainHash);
@@ -267,7 +269,6 @@ public class BlockChainList extends PeerToPeer implements List {
 				}
 			}
 			return true;
-		}
 	}
 
 	public ArrayList<Block> getBlockChainList(Map<String, Block> bc) throws Exception {
@@ -387,12 +388,20 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	
 	public void onRecieveMessage(Object msg) throws Exception {
-		this.add(msg);
+
+		Thread recv = new Thread(new Runnable() {
+			public void run() {
+				try {					
+					add(msg);
+				} catch (Exception e) {}
+			}
+		});
+		recv.start();
 	}
 
 	
 
-	public String getEntireHashOfBlockChain() throws NoSuchAlgorithmException {
+	public String getEntireHashOfBlockChain() throws Exception {
 		String prevHash = "000000000000000";
 		String hashes = prevHash;
 		while (this.blockChain.containsKey(prevHash)) {

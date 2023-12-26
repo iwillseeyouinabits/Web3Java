@@ -51,8 +51,7 @@ public abstract class PeerToPeer {
 			public void run() {
 				try {
 					start();
-				} catch (IOException e) {
-				}
+				} catch (IOException e) {}
 			}
 		});
 		recv.start();
@@ -120,14 +119,14 @@ public abstract class PeerToPeer {
 				sendTCP(tcpPack);
 			}
 		}
-		//close connections
-		for (int i = 0; i < peers.length; i++) {
-			outs[i].close();
-			ins[i].close();
-		}
+		// //close connections
+		// for (int i = 0; i < peers.length; i++) {
+		// 	outs[i].close();
+		// 	ins[i].close();
+		// }
 	}
 
-	protected String sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+	protected Nounce sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
 		ArrayList<String> signatureOfHash = new ArrayList<String>();
 		ArrayList<PublicKey> pks = new ArrayList<PublicKey>();
 		for (int i = 0; i < peers.length; i++) {
@@ -137,7 +136,7 @@ public abstract class PeerToPeer {
 			signatureOfHash.add(res.getHashSignature());
 			pks.add(res.getPublicKey());
 		}
-		return new Nounce(signatureOfHash, pks, tcpPack.getHash()).getNounce();
+		return new Nounce(signatureOfHash, pks, tcpPack.getHash());
 	}
 
 
@@ -173,7 +172,7 @@ public abstract class PeerToPeer {
 					out.writeObject(new TCPResponse(pk, hash, signatureOfHash));
 					onRecieveMessage(msg);
 				}
-				clientSocket.close();
+				// clientSocket.close();
 			} catch(EOFException e) {
 				System.err.println("#--> Finish");
 			} catch (Exception e) {
@@ -183,7 +182,7 @@ public abstract class PeerToPeer {
 		}
 	}
 
-	public String getEntireHashOfBlockChain(Map<String, Block> bc) throws NoSuchAlgorithmException {
+	public String getEntireHashOfBlockChain(Map<String, Block> bc) throws Exception {
 		String prevHash = "000000000000000";
 		String hashes = prevHash;
 		while (bc.containsKey(prevHash)) {

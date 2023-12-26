@@ -42,7 +42,7 @@ public class BlockBody implements Serializable {
 		block.add(transaction);
 	}
 
-	public String getHash() throws NoSuchAlgorithmException { 
+	public String getHash() throws Exception { 
 		return RSAService.getSHA256(getHashableToken());
 	}
 
@@ -50,7 +50,7 @@ public class BlockBody implements Serializable {
 		this.nounce = n;
 	}
 	
-	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
+	public JSONObject getJson() throws Exception {
 		JSONObject json = new JSONObject();
 		JSONArray transactions = new JSONArray();
 		for (int i = 0; i < block.size(); i++) {
@@ -64,7 +64,10 @@ public class BlockBody implements Serializable {
 		return json;
 	}
 	
-	private String getHashableToken() throws NoSuchAlgorithmException {
+	private String getHashableToken() throws Exception {
+		// if (this.nounce.length() == 0) {
+		// 	throw new Exception("Nounce Not Defined: Cannot Get Hash Of Block");
+		// }
 		return this.nounce + this.hashableToken;
 	}
 

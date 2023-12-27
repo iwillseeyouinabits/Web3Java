@@ -23,9 +23,15 @@ public class Block implements Serializable{
 		this.blockBody = new BlockBody(prevBlockHash, pk);
 	}
 	
+	public void addTransaction(TransactionPackage transaction, String nounce) throws Exception {
+			this.setNounce(nounce);
+			this.blockBody.addTransaction(transaction);
+	}
+	
 	public void addTransaction(TransactionPackage transaction) throws Exception {
 			this.blockBody.addTransaction(transaction);
 	}
+
 
 	public void signBlock(PrivateKey sk) throws Exception {
 		this.blockBody.timestamp = getCurrentTime();

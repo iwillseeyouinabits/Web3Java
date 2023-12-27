@@ -43,6 +43,10 @@ public class TransactionPackage implements Serializable {
 	public String getHash() {
 		return this.hash;
 	}
+
+	public String getUUID() {
+		return transaction.getUuid();
+	}
 	
 	public boolean equals(Object o) {
 		TransactionPackage rhs = (TransactionPackage) o;

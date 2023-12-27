@@ -10,7 +10,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +32,8 @@ public abstract class PeerToPeer {
 	private ServerSocket[] serverSockets;
 	private Socket[] sendSockets;
 	protected ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
-	private boolean close = false;
+	protected ConcurrentHashMap<String, Nounce> toAdd = new ConcurrentHashMap<String, Nounce>();
+	protected boolean close = false;
 	ObjectOutputStream[] outs;
 	ObjectInputStream[] ins;
 
@@ -103,30 +106,26 @@ public abstract class PeerToPeer {
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		}
 	}
-	public void loopSend() throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+
+	public void loopSend() throws Exception {
 		//loop sending while not closed
 		while (!this.close) {
-			Iterator<Entry<String, TCPPackage>> tcpIterator1 = this.toSend.entrySet().iterator();
-			Iterator<Entry<String, TCPPackage>> tcpIterator2 = this.toSend.entrySet().iterator();
-			while (tcpIterator1.hasNext()) {
-				TCPPackage tcpPack = tcpIterator1.next().getValue();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend1 = this.toSend.entrySet().iterator();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend2 = this.toSend.entrySet().iterator();
+			while (tcpIteratorToSend1.hasNext()) {
+				TCPPackage tcpPack = tcpIteratorToSend1.next().getValue();
 				if (tcpPack instanceof TCPBlockChainPackage || tcpPack instanceof TCPBlockPackage) {
 					sendTCP(tcpPack);
 				}
 			}
-			if (tcpIterator2.hasNext()) {
-				TCPPackage tcpPack = tcpIterator2.next().getValue();
+			if (tcpIteratorToSend2.hasNext()) {
+				TCPPackage tcpPack = tcpIteratorToSend2.next().getValue();
 				sendTCP(tcpPack);
 			}
 		}
-		// //close connections
-		// for (int i = 0; i < peers.length; i++) {
-		// 	outs[i].close();
-		// 	ins[i].close();
-		// }
 	}
 
-	protected Nounce sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+	protected void sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
 		ArrayList<String> signatureOfHash = new ArrayList<String>();
 		ArrayList<PublicKey> pks = new ArrayList<PublicKey>();
 		for (int i = 0; i < peers.length; i++) {
@@ -136,7 +135,9 @@ public abstract class PeerToPeer {
 			signatureOfHash.add(res.getHashSignature());
 			pks.add(res.getPublicKey());
 		}
-		return new Nounce(signatureOfHash, pks, tcpPack.getHash());
+		if (tcpPack instanceof TCPTransactionPackagePackage) {
+			this.toAdd.put(tcpPack.getHash(), new Nounce(signatureOfHash, pks, tcpPack.getHash()));
+		}
 	}
 
 
@@ -172,7 +173,7 @@ public abstract class PeerToPeer {
 					out.writeObject(new TCPResponse(pk, hash, signatureOfHash));
 					onRecieveMessage(msg);
 				}
-				// clientSocket.close();
+				clientSocket.close();
 			} catch(EOFException e) {
 				System.err.println("#--> Finish");
 			} catch (Exception e) {
@@ -180,17 +181,6 @@ public abstract class PeerToPeer {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	public String getEntireHashOfBlockChain(Map<String, Block> bc) throws Exception {
-		String prevHash = "000000000000000";
-		String hashes = prevHash;
-		while (bc.containsKey(prevHash)) {
-			Block curBlock = bc.get(prevHash);
-			prevHash = curBlock.getHash();
-			hashes += prevHash;
-		}
-		return new RSAService().getSHA256(hashes);
 	}
 
 }

@@ -19,9 +19,9 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 10;
+		int numToRun = 10000;
 		int numChains = 2;
-		int maxDifficulty = 2;
+		int maxDifficulty = 3;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
@@ -136,35 +136,18 @@ public class App {
 		for (int i = 0; i < runners.length; i++) {
 			runners[i].join();
 		}
+		
+		for (int i = 0; i < syncedBlockChainLists.length; i++) {
+			unsyncedBlockChainLists[i].close();
+		}
 
-		Thread.sleep(5000);
+		for (int i = 0; i < syncedBlockChainLists.length; i++) {
+			unsyncedBlockChainLists[i].writeToFile("BlockChain" + i + ".json");
+		}
 		// print results
 		System.out.println("numAdded: " + syncedBlockChainLists[0].size() + " V.S. " + numToRun);
 		System.out.println("Launch in: " + (joinTime - launchTime) / 1000.0);
 		System.out.println("Run in: " + (finishTime - joinTime) / 1000.0);
 		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));
-
-		// if (syncedBlockChainLists.length > 1) {
-		// for (int i = 0; i < unsyncedBlockChainLists[0].getBlockChainList().size()
-		// && i < unsyncedBlockChainLists[1].getBlockChainList().size(); i++) {
-		// System.out.println(unsyncedBlockChainLists[0].getBlockChainList().get(i).getHash()
-		// + " <=> "
-		// + unsyncedBlockChainLists[1].getBlockChainList().get(i).getHash());
-		// for (int j = 0; j <
-		// unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.size()
-		// && j < 10; j++) {
-		// System.out.println(" -> "
-		// +
-		// unsyncedBlockChainLists[0].getBlockChainList().get(i).blockBody.block.get(j).getHash()
-		// + " <-> "
-		// +
-		// unsyncedBlockChainLists[1].getBlockChainList().get(i).blockBody.block.get(j).getHash());
-		// }
-		// }
-		// }
-		for (int i = 0; i < syncedBlockChainLists.length; i++) {
-			unsyncedBlockChainLists[i].writeToFile("BlockChain" + i + ".json");
-			unsyncedBlockChainLists[i].close();
-		}
 	}
 }

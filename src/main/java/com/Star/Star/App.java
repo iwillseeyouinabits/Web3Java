@@ -19,9 +19,9 @@ import java.util.concurrent.Executors;
 public class App {
 
 	public static void main(String[] args) throws Exception {
-		int numToRun = 10000;
+		int numToRun = 1000;
 		int numChains = 2;
-		int maxDifficulty = 1;
+		int maxDifficulty = 2;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
@@ -137,7 +137,7 @@ public class App {
 			runners[i].join();
 		}
 
-		Thread.sleep(5*60000);
+		Thread.sleep(5000);
 
 		for (int i = 0; i < syncedBlockChainLists.length; i++) {
 			unsyncedBlockChainLists[i].close();

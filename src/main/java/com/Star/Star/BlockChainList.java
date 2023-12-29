@@ -23,8 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.Star.Star.services.RSAService;
-
-import static com.Star.Star.services.ValidationService.validate;
+import com.Star.Star.services.ValidationService;
 
 /**
  * Data structure that represents single blockchain
@@ -200,7 +199,7 @@ public class BlockChainList extends PeerToPeer implements List {
 							List<TransactionPackage> recBlockTransactions = recBlock.getTransactions();
 							for (int i = 0; i < curBlockTransactions.size(); i++) {
 								TransactionPackage tp = curBlockTransactions.get(i);
-								if (!this.contains(tp)) {
+								if (new ValidationService().validate(this.getTransactions(), tp)) {
 									block.addTransaction(tp);
 								}
 							}
@@ -243,7 +242,7 @@ public class BlockChainList extends PeerToPeer implements List {
 									recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
 							for (int i = 0; i < curBlockChainTransactions.size(); i++) {
 								TransactionPackage tp = curBlockChainTransactions.get(i);
-								if (!this.contains(tp)) {
+								if (new ValidationService().validate(this.getTransactions(), tp)) {
 									block.addTransaction(tp);
 								}
 							}
@@ -281,13 +280,12 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	private void loopAddTransactionPackageNounce() throws Exception {
 		while (!close) {
-			Thread.sleep(100);
 			Iterator<Entry<String, TransactionPackage>> itr = this.nouncesWaitingFor.entrySet().iterator();
 			while (itr.hasNext()) {
 				Entry<String, TransactionPackage> nounceWait = itr.next();
 				String waitHash = nounceWait.getKey();
 				synchronized (this) {
-					if (toAdd.containsKey(waitHash) && !this.contains(nounceWait.getValue())) {
+					if (toAdd.containsKey(waitHash) && new ValidationService().validate(this.getTransactions(), nounceWait.getValue())) {
 						Nounce genNounce = toAdd.get(nounceWait.getKey());
 						block.addTransaction(nounceWait.getValue(), genNounce.getNounce());
 						block.signBlock(sk);

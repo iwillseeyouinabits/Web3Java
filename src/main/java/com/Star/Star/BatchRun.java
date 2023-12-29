@@ -12,13 +12,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.Star.Star.BlockChainList.BlockChainList;
-import com.Star.Star.BlockChainList.BlockTesterThreaded;
-import com.Star.Star.BlockChainList.CurrencyTransaction;
-import com.Star.Star.BlockChainList.HttpTransaction;
-import com.Star.Star.BlockChainList.ServerAddress;
-import com.Star.Star.BlockChainList.ShellTransaction;
-import com.Star.Star.BlockChainList.Transaction;
-import com.Star.Star.BlockChainList.TransactionPackage;
+import com.Star.Star.BlockChainList.BlockChainListParts.BlockTesterThreaded;
+import com.Star.Star.BlockChainList.BlockChainListParts.CurrencyTransaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.HttpTransaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.ServerAddress;
+import com.Star.Star.BlockChainList.BlockChainListParts.ShellTransaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.Transaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.TransactionPackage;
 import com.Star.Star.BlockChainList.services.RSAService;
 
 import me.tongfei.progressbar.ProgressBar;

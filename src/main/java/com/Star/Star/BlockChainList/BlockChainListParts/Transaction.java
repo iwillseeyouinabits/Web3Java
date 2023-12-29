@@ -1,4 +1,4 @@
-package com.Star.Star.BlockChainList;
+package com.Star.Star.BlockChainList.BlockChainListParts;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;

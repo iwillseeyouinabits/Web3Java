@@ -1,4 +1,4 @@
-package com.Star.Star.BlockChainList;
+package com.Star.Star.BlockChainList.BlockChainListParts;
 
 import static com.Star.Star.BlockChainList.services.TransactionService.getCurrencyTransactionHash;
 

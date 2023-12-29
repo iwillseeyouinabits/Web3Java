@@ -1,4 +1,4 @@
-package com.Star.Star.BlockChainList;
+package com.Star.Star.BlockChainList.BlockChainListParts;
 
 import java.io.Serializable;
 import java.security.PublicKey;

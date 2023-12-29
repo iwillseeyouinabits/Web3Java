@@ -22,6 +22,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.Star.Star.BlockChainList.BlockChainListParts.Block;
+import com.Star.Star.BlockChainList.BlockChainListParts.BlockChainTCPPackage;
+import com.Star.Star.BlockChainList.BlockChainListParts.Nounce;
+import com.Star.Star.BlockChainList.BlockChainListParts.PeerToPeer;
+import com.Star.Star.BlockChainList.BlockChainListParts.ServerAddress;
+import com.Star.Star.BlockChainList.BlockChainListParts.TransactionPackage;
 import com.Star.Star.BlockChainList.services.RSAService;
 import com.Star.Star.BlockChainList.services.ValidationService;
 
@@ -192,7 +198,7 @@ public class BlockChainList extends PeerToPeer implements List {
 						recievedBlockHashes.add(recBlockHash);
 						if (recBlock.getBlockBody().getPrevBlockHash()
 								.equals(block.getBlockBody().getPrevBlockHash())) {
-							blockChain.put(recBlock.blockBody.getPrevBlockHash(), recBlock);
+							blockChain.put(recBlock.getBlockBody().getPrevBlockHash(), recBlock);
 							Block ogBlock = block;
 							block = new Block(pk, recBlock.getHash());
 							List<TransactionPackage> curBlockTransactions = ogBlock.getTransactions();
@@ -216,7 +222,8 @@ public class BlockChainList extends PeerToPeer implements List {
 							// System.out.println(name + " Prev Hash Of Recieved Block Does Not Match! -> "
 							// + recBlockHash + " " + this.getEntireHashOfBlockChain(blockChain) + " " +
 							// this.getTransactions(blockChain).size());
-							addToSend(new BlockChainTCPPackage(this.blockChain));
+							if (peers != null)
+								addToSend(new BlockChainTCPPackage(this.blockChain));
 						}
 					}
 				} catch (Exception e) {
@@ -296,7 +303,22 @@ public class BlockChainList extends PeerToPeer implements List {
 							Block solvedBlock = block;
 							block = new Block(pk, block.getHash());
 							recievedBlockHashes.add(solvedBlock.getHash());
-							blockChain.put(solvedBlock.blockBody.getPrevBlockHash(), solvedBlock);
+							blockChain.put(solvedBlock.getBlockBody().getPrevBlockHash(), solvedBlock);
+							if (peers != null) {
+								addToSend(solvedBlock);
+							}
+						}
+					} else if  (peers == null && new ValidationService().validate(this.getTransactions(), nounceWait.getValue())) {
+						block.addTransaction(nounceWait.getValue());
+						block.signBlock(sk);
+						this.size++;
+
+						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
+								&& !recievedBlockHashes.contains(block.getHash())) {
+							Block solvedBlock = block;
+							block = new Block(pk, block.getHash());
+							recievedBlockHashes.add(solvedBlock.getHash());
+							blockChain.put(solvedBlock.getBlockBody().getPrevBlockHash(), solvedBlock);
 							if (peers != null) {
 								addToSend(solvedBlock);
 							}

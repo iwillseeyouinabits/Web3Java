@@ -1,4 +1,4 @@
-package com.Star.Star.BlockChainList;
+package com.Star.Star.BlockChainList.BlockChainListParts;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -44,12 +44,13 @@ public abstract class PeerToPeer {
 		this.ip = ip;
 		this.port = port;
 		this.peers = peers;
-		this.sendSockets = new Socket[this.peers.length];
-		this.serverSockets = new ServerSocket[this.peers.length];
-		for (int i = 0; i < this.peers.length; i++) {
-			this.serverSockets[i] = new ServerSocket(port+i);
+		if (peers != null) {
+			this.sendSockets = new Socket[this.peers.length];
+			this.serverSockets = new ServerSocket[this.peers.length];
+			for (int i = 0; i < this.peers.length; i++) {
+				this.serverSockets[i] = new ServerSocket(port+i);
+			}
 		}
-
 		Thread recv = new Thread(new Runnable() {
 			public void run() {
 				try {
@@ -142,8 +143,10 @@ public abstract class PeerToPeer {
 
 
 	public void start() throws IOException {
-		for (int i = 0; i < this.peers.length; i++) {
-			new Receive(this.serverSockets[i].accept()).start();
+		if (peers != null) {
+			for (int i = 0; i < this.peers.length; i++) {
+				new Receive(this.serverSockets[i].accept()).start();
+			}
 		}
 	}
 

@@ -48,9 +48,15 @@ public class TransactionPackage implements Serializable {
 		return transaction.getUuid();
 	}
 	
+	@Override
 	public boolean equals(Object o) {
 		TransactionPackage rhs = (TransactionPackage) o;
 		return this.hash.equals(rhs.getHash());
+	}
+
+	@Override
+	public int hashCode(){
+		return Integer.parseInt(this.getHash().substring(0, 7).toUpperCase(), 16);
 	}
 	
 	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {

@@ -112,7 +112,7 @@ public abstract class PeerToPeer {
 		while (!this.close) {
 			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend1 = this.toSend.entrySet().iterator();
 			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend2 = this.toSend.entrySet().iterator();
-			while (tcpIteratorToSend1.hasNext()) {
+			while (tcpIteratorToSend1.hasNext() && !this.close) {
 				TCPPackage tcpPack = tcpIteratorToSend1.next().getValue();
 				if (tcpPack instanceof TCPBlockChainPackage || tcpPack instanceof TCPBlockPackage) {
 					sendTCP(tcpPack);

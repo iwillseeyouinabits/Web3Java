@@ -1,7 +1,6 @@
 package com.Star.Star;
 
 import com.Star.Star.services.RSAService;
-import com.Star.Star.services.ValidationService;
 
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarStyle;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,7 +21,7 @@ public class App {
 	public static void main(String[] args) throws Exception {
 		int numToRun = 10000;
 		int numChains = 2;
-		int maxDifficulty = 3;
+		int maxDifficulty = 1;
 		testBatchRun(numToRun, numChains, maxDifficulty);
 	}
 
@@ -136,7 +136,9 @@ public class App {
 		for (int i = 0; i < runners.length; i++) {
 			runners[i].join();
 		}
-		
+
+		Thread.sleep(5*60000);
+
 		for (int i = 0; i < syncedBlockChainLists.length; i++) {
 			unsyncedBlockChainLists[i].close();
 		}
@@ -149,5 +151,10 @@ public class App {
 		System.out.println("Launch in: " + (joinTime - launchTime) / 1000.0);
 		System.out.println("Run in: " + (finishTime - joinTime) / 1000.0);
 		System.out.println("TPS: " + (numProcessed / ((finishTime - joinTime) / 1000.0)));
+		Map<TransactionPackage, Integer> bigCount = unsyncedBlockChainLists[0].getBiggestCount();
+		for(Map.Entry<TransactionPackage, Integer> entry : bigCount.entrySet()) {
+			System.out.println(entry.getKey().getHash() + " " + entry.getValue());
+		}
+		System.out.println("====================================================================");
 	}
 }

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.Star.Star.services.RSAService;
 
@@ -20,8 +21,8 @@ public class BlockChainTCPPackage implements Serializable {
         this.blockChainList = Collections.synchronizedList(this.getBlockChainList(blockChain));
     }
 
-    public Map<String, Block> getBlockChain() throws Exception {
-        Map<String, Block> bc = new HashMap<String, Block>();
+    public ConcurrentHashMap<String, Block> getBlockChain() throws Exception {
+        ConcurrentHashMap<String, Block> bc = new ConcurrentHashMap<String, Block>();
         String prevHash = "000000000000000";
         for (Block block : this.blockChainList) {
             bc.put(prevHash, block);

@@ -1,4 +1,4 @@
-package com.Star.Star;
+package com.Star.Star.BlockChainList;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,8 +22,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.Star.Star.services.RSAService;
-import com.Star.Star.services.ValidationService;
+import com.Star.Star.BlockChainList.services.RSAService;
+import com.Star.Star.BlockChainList.services.ValidationService;
 
 /**
  * Data structure that represents single blockchain

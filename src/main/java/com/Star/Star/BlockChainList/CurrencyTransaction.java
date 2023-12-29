@@ -1,4 +1,6 @@
-package com.Star.Star;
+package com.Star.Star.BlockChainList;
+
+import static com.Star.Star.BlockChainList.services.TransactionService.getCurrencyTransactionHash;
 
 import java.io.Serializable;
 import java.security.KeyFactory;
@@ -10,9 +12,7 @@ import java.util.UUID;
 
 import org.json.JSONObject;
 
-import com.Star.Star.services.RSAService;
-
-import static com.Star.Star.services.TransactionService.getCurrencyTransactionHash;
+import com.Star.Star.BlockChainList.services.RSAService;
 
 /**
  * Currency Transaction

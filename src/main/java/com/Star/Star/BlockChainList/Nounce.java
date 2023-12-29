@@ -1,9 +1,9 @@
-package com.Star.Star;
+package com.Star.Star.BlockChainList;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 
-import com.Star.Star.services.RSAService;
+import com.Star.Star.BlockChainList.services.RSAService;
 
 public class Nounce {
     private ArrayList<String> hashSignatures;

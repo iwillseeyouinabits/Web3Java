@@ -1,4 +1,6 @@
-package com.Star.Star;
+package com.Star.Star.BlockChainList;
+
+import static com.Star.Star.BlockChainList.services.TransactionService.getHTTPTransactionHash;
 
 import java.io.Serializable;
 import java.security.KeyFactory;
@@ -9,9 +11,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 import org.json.JSONObject;
 
-import com.Star.Star.services.RSAService;
-
-import static com.Star.Star.services.TransactionService.getHTTPTransactionHash;
+import com.Star.Star.BlockChainList.services.RSAService;
 
 /**
  * HttpTransaction

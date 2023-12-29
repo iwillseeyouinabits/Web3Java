@@ -1,6 +1,6 @@
-package com.Star.Star;
+package com.Star.Star.BlockChainList;
 
-import com.Star.Star.services.RSAService;
+import static com.Star.Star.BlockChainList.services.DateService.getCurrentTime;
 
 import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
@@ -13,7 +13,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.Star.Star.services.DateService.getCurrentTime;
+import com.Star.Star.BlockChainList.services.RSAService;
 
 public class BlockBody implements Serializable {
 	final String prevBlockHash;

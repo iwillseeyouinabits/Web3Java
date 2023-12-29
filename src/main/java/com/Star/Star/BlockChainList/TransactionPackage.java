@@ -1,6 +1,4 @@
-package com.Star.Star;
-
-import com.Star.Star.services.RSAService;
+package com.Star.Star.BlockChainList;
 
 import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
@@ -9,6 +7,8 @@ import java.security.PublicKey;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.Star.Star.BlockChainList.services.RSAService;
 
 public class TransactionPackage implements Serializable {
 	final double gassFee;

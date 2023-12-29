@@ -11,5 +11,6 @@ public abstract class Transaction {
 	public abstract long byteSize();
 	public abstract PublicKey getSigner();
 	public abstract JSONObject getJson();
+	public abstract String getUuid();
 	public abstract String getHash() throws NoSuchAlgorithmException;
 }

@@ -1,0 +1,26 @@
+package com.Star.Star;
+
+import java.io.Serializable;
+
+/**
+ * Wrapper class to allow for sending both transactions and blocks
+ */
+public class TCPBlockPackage extends TCPPackage implements Serializable {
+	private final Block block;
+	private final String hash;
+	
+	public TCPBlockPackage(Block block) throws Exception {
+		super();
+		this.block = block;
+		this.hash = block.getHash();
+	}
+	
+	public Object getPackage() {
+		return this.block;
+	}
+	
+	public String getHash() {
+		return this.hash;
+	}
+
+}

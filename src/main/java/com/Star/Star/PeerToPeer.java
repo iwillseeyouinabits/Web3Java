@@ -7,6 +7,8 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -21,41 +23,68 @@ import com.Star.Star.services.RSAService;
  * Peer to peer code for blockchain
  */
 public abstract class PeerToPeer {
+	private PublicKey pk;
+	private PrivateKey sk;
+	private String name;
 	private String ip;
 	private int port;
-	private ServerAddress peer;
-	private ServerSocket serverSocket;
-	private Socket sendSocket;
+	private ServerAddress[] peers;
+	private ServerSocket[] serverSockets;
+	private Socket[] sendSockets;
 	protected ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
-	private boolean close = false;
+	protected ConcurrentHashMap<String, Nounce> toAdd = new ConcurrentHashMap<String, Nounce>();
+	protected boolean close = false;
+	ObjectOutputStream[] outs;
+	ObjectInputStream[] ins;
 
-	public PeerToPeer(String ip, int port, ServerAddress peer, int maxTpChunckSize) throws Exception {
+	public PeerToPeer(PublicKey pk, PrivateKey sk, String name, String ip, int port, ServerAddress[] peers, int maxTpChunckSize) throws Exception {
+		this.pk = pk;
+		this.sk = sk;
+		this.name = name;
 		this.ip = ip;
 		this.port = port;
-		this.peer = peer;
-		this.serverSocket = new ServerSocket(port);
+		this.peers = peers;
+		this.sendSockets = new Socket[this.peers.length];
+		this.serverSockets = new ServerSocket[this.peers.length];
+		for (int i = 0; i < this.peers.length; i++) {
+			this.serverSockets[i] = new ServerSocket(port+i);
+		}
+
 		Thread recv = new Thread(new Runnable() {
 			public void run() {
 				try {
 					start();
-				} catch (IOException e) {
-				}
+				} catch (IOException e) {}
 			}
 		});
 		recv.start();
+
 	}
 
-	public void connectToPeer() {
+	public void connectToPeer() throws IOException {
 		try {
-			this.sendSocket = new Socket(this.peer.getIp(), this.peer.getPort());
+			for (int i = 0; i < peers.length; i++) {
+				this.sendSockets[i] = new Socket(this.peers[i].getIp(), this.peers[i].getPort());
+			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.err.println("!!" + e.getMessage());
+		}
+
+		
+		
+		this.outs = new ObjectOutputStream[peers.length];
+		this.ins = new ObjectInputStream[peers.length];
+		for (int i = 0; i < peers.length; i++) {
+			this.outs[i] = new ObjectOutputStream(sendSockets[i].getOutputStream());
+			this.ins[i] = new ObjectInputStream(sendSockets[i].getInputStream());
 		}
 
 		Thread sendLoop = new Thread(() -> {
 			try {
 				loopSend();
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.err.println("??" + e.getMessage());
 			}
 		});
@@ -65,86 +94,57 @@ public abstract class PeerToPeer {
 	public void addToSend(Object msg) throws Exception {
 		if (msg instanceof TransactionPackage) {
 			TransactionPackage tp = (TransactionPackage) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), tp);
+			TCPPackage tcpPack = new TCPTransactionPackagePackage(tp);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} else if (msg instanceof Block) {
 			Block block = (Block) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), block);
+			TCPPackage tcpPack = new TCPBlockPackage(block);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
 		} else if (msg instanceof BlockChainTCPPackage) {
 			BlockChainTCPPackage bc = (BlockChainTCPPackage) msg;
-			TCPPackage tcpPack = new TCPPackage(new ServerAddress(this.ip, this.port), bc);
+			TCPPackage tcpPack = new TCPBlockChainPackage(bc);
 			this.toSend.put(tcpPack.getHash(), tcpPack);
-			// System.out.println("Added BlockChain To Send Queue "
-			// 		+ tcpPack.getHash());
 		}
 	}
 
-	public void loopSend() {
-
-		ObjectOutputStream out;
-		ObjectInputStream in;
-		try {
-			out = new ObjectOutputStream(sendSocket.getOutputStream());
-			in = new ObjectInputStream(sendSocket.getInputStream());
-		} catch (Exception e) {
-			loopSend();
-			return;
-		}
-
+	public void loopSend() throws Exception {
+		//loop sending while not closed
 		while (!this.close) {
-			Iterator<Entry<String, TCPPackage>> tcpIterator = this.toSend.entrySet().iterator();
-			Iterator<Entry<String, TCPPackage>> tcpIteratorBlocks = this.toSend.entrySet().iterator();
-			Iterator<Entry<String, TCPPackage>> tcpIteratorBlockChains = this.toSend.entrySet().iterator();
-			while (tcpIteratorBlockChains.hasNext()) {
-				try {
-					TCPPackage tcpPack = tcpIteratorBlockChains.next().getValue();
-					if (tcpPack.isBlockChain()) {
-						// System.out.println("BlockChain Sending to Peer: " + ((BlockChainTCPPackage) tcpPack.getObject()).getEntireHashOfBlockChain());
-						out.writeObject(tcpPack);
-						// System.out.println("BlockChain Sent to Peer: " + ((BlockChainTCPPackage) tcpPack.getObject()).getEntireHashOfBlockChain());
-						String hash = (String) in.readObject();
-						// System.out.println("Hash Recieved From Peer: " + hash);
-						this.toSend.remove(hash);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend1 = this.toSend.entrySet().iterator();
+			Iterator<Entry<String, TCPPackage>> tcpIteratorToSend2 = this.toSend.entrySet().iterator();
+			while (tcpIteratorToSend1.hasNext() && !this.close) {
+				TCPPackage tcpPack = tcpIteratorToSend1.next().getValue();
+				if (tcpPack instanceof TCPBlockChainPackage || tcpPack instanceof TCPBlockPackage) {
+					sendTCP(tcpPack);
 				}
 			}
-			while (tcpIteratorBlocks.hasNext()) {
-				try {
-					TCPPackage tcpPack = tcpIteratorBlocks.next().getValue();
-					if (tcpPack.isBlock()) {
-						out.writeObject(tcpPack);
-						String hash = (String) in.readObject();
-						this.toSend.remove(hash);
-						break;
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+			if (tcpIteratorToSend2.hasNext()) {
+				TCPPackage tcpPack = tcpIteratorToSend2.next().getValue();
+				sendTCP(tcpPack);
 			}
-			while (tcpIterator.hasNext()) {
-				try {
-					TCPPackage tcpPack = tcpIterator.next().getValue();
-					out.writeObject(tcpPack);
-					String hash = (String) in.readObject();
-					this.toSend.remove(hash);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		try {
-			out.close();
-			in.close();
-		} catch (Exception e) {
-			System.err.println("{{" + e.getMessage());
 		}
 	}
+
+	protected void sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+		ArrayList<String> signatureOfHash = new ArrayList<String>();
+		ArrayList<PublicKey> pks = new ArrayList<PublicKey>();
+		for (int i = 0; i < peers.length; i++) {
+			this.outs[i].writeObject(tcpPack);
+			TCPResponse res = (TCPResponse) this.ins[i].readObject();
+			this.toSend.remove(res.getHash());
+			signatureOfHash.add(res.getHashSignature());
+			pks.add(res.getPublicKey());
+		}
+		if (tcpPack instanceof TCPTransactionPackagePackage) {
+			this.toAdd.put(tcpPack.getHash(), new Nounce(signatureOfHash, pks, tcpPack.getHash()));
+		}
+	}
+
 
 	public void start() throws IOException {
-		new Receive(this.serverSocket.accept()).start();
+		for (int i = 0; i < this.peers.length; i++) {
+			new Receive(this.serverSockets[i].accept()).start();
+		}
 	}
 
 	public void close() {
@@ -168,12 +168,9 @@ public abstract class PeerToPeer {
 				while (!close) {
 					final TCPPackage tcpPack = (TCPPackage) in.readObject();
 					String hash = tcpPack.getHash();
-					Object msg = tcpPack.getObject();
-					if (msg instanceof BlockChainTCPPackage) {
-						// System.out.println("Recieved BlockChain " + ((BlockChainTCPPackage) msg).getEntireHashOfBlockChain()
-						// 		+ " " + hash);
-					}
-					out.writeObject(hash);
+					Object msg = tcpPack.getPackage();
+					String signatureOfHash = RSAService.sign(hash, sk);
+					out.writeObject(new TCPResponse(pk, hash, signatureOfHash));
 					onRecieveMessage(msg);
 				}
 				clientSocket.close();
@@ -184,17 +181,6 @@ public abstract class PeerToPeer {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	public String getEntireHashOfBlockChain(Map<String, Block> bc) throws NoSuchAlgorithmException {
-		String prevHash = "000000000000000";
-		String hashes = prevHash;
-		while (bc.containsKey(prevHash)) {
-			Block curBlock = bc.get(prevHash);
-			prevHash = curBlock.getHash();
-			hashes += prevHash;
-		}
-		return new RSAService().getSHA256(hashes);
 	}
 
 }

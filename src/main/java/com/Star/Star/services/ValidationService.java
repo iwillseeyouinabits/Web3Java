@@ -7,36 +7,18 @@ import org.json.JSONTokener;
 import static com.Star.Star.services.DateService.getCurrentTime;
 import static com.Star.Star.services.TransactionService.*;
 
+import java.util.List;
+
 /**
  * Service layer that contains validation logic for blocks and transactions
  */
 public class ValidationService {
 
-    public static boolean validate(Block latestBlock, Block blockToVerify) {
-        boolean blockSignatureRule;
-        boolean prevBlockHashRule;
-        boolean blockTimeRule;
-        boolean transactionsRule;
-        try {
-            //validating Block Signature
-            blockSignatureRule = RSAService.verify(
-                    blockToVerify.getHash(), blockToVerify.getBlockSig(), blockToVerify.getBlockBody().getMinerPk());
-            //validating that the new blocks previous hash is correct
-            prevBlockHashRule = blockToVerify.getBlockBody().getPrevBlockHash().equals(latestBlock.getHash());
-            //validating time on new block
-            long latestBlockTime = latestBlock.getBlockBody().getTimestamp();
-            long blockToVerifyTime = blockToVerify.getBlockBody().getTimestamp();
-            blockTimeRule = latestBlockTime <= blockToVerifyTime || latestBlockTime > getCurrentTime();
-            //validating all transactions on block
-            transactionsRule = blockToVerify.getTransactions().stream().allMatch(ValidationService::validate);
-        } catch (Exception e) {
-            System.err.println("**#" + e.getMessage());
-            return false;
-        }
-        return blockSignatureRule && blockTimeRule && prevBlockHashRule && transactionsRule;
+    public boolean validate(List<TransactionPackage> tps, TransactionPackage tp) {
+        return !tps.contains(tp) && this.validateTransactionMetadata(tp);
     }
 
-    public static boolean validate(TransactionPackage transactionPackage) {
+    public boolean validateTransactionMetadata(TransactionPackage transactionPackage) {
         boolean transactionRule;
         boolean hashRule;
         boolean signatureRule;
@@ -45,19 +27,19 @@ public class ValidationService {
             signatureRule = transactionPackage.verifySigner();
             //validating transaction and hash for each type of transaction
             if (transactionPackage.getTransaction() instanceof HttpTransaction) {
-                transactionRule = validate(
+                transactionRule = validateHttpTransactionMetadata(
                         (HttpTransaction)transactionPackage.getTransaction(), transactionPackage.getGassFee());
                 hashRule = transactionPackage.getHash().equals(
                         getHTTPTransactionHash((HttpTransaction) transactionPackage.getTransaction()));
             }
             else if (transactionPackage.getTransaction() instanceof ShellTransaction) {
-                transactionRule = validate(
+                transactionRule = validateShellTransactionMetadata (
                         (ShellTransaction)transactionPackage.getTransaction(), transactionPackage.getGassFee());
                 hashRule = transactionPackage.getHash().equals(
                         getShellTransactionHash((ShellTransaction) transactionPackage.getTransaction()));
             }
             else {
-                transactionRule = validate(
+                transactionRule = validateCurrencyTransactionMetadata (
                         (CurrencyTransaction) transactionPackage.getTransaction(), transactionPackage.getGassFee());
                 hashRule = transactionPackage.getHash().equals(
                         getCurrencyTransactionHash((CurrencyTransaction) transactionPackage.getTransaction()));
@@ -69,7 +51,7 @@ public class ValidationService {
         return transactionRule && hashRule && signatureRule;
     }
 
-    public static boolean validate(HttpTransaction transaction, double gassFee) {
+    public boolean validateHttpTransactionMetadata(HttpTransaction transaction, double gassFee) {
         boolean gassFeeRule;
         boolean jsonRule;
         //validating gass fee
@@ -79,7 +61,7 @@ public class ValidationService {
         return jsonRule && gassFeeRule;
     }
 
-    public static boolean validate(CurrencyTransaction transaction, double gassFee) {
+    public boolean validateCurrencyTransactionMetadata(CurrencyTransaction transaction, double gassFee) {
         boolean gassFeeRule;
         boolean minTokenRule;
         //validating gass fee
@@ -89,7 +71,7 @@ public class ValidationService {
         return minTokenRule && gassFeeRule;
     }
 
-    public static boolean validate(ShellTransaction transaction, double gassFee) {
+    public boolean validateShellTransactionMetadata(ShellTransaction transaction, double gassFee) {
         //validating gass fee
         return gassFee == calcShellGassFee(transaction.getShell(), transaction.getWebsite_name());
     }

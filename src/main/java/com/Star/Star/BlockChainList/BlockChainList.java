@@ -205,7 +205,7 @@ public class BlockChainList extends PeerToPeer implements List {
 							List<TransactionPackage> recBlockTransactions = recBlock.getTransactions();
 							for (int i = 0; i < curBlockTransactions.size(); i++) {
 								TransactionPackage tp = curBlockTransactions.get(i);
-								if (new ValidationService().validate(this.getTransactions(), tp)) {
+								if (new ValidationService().validateTransaction(this.getTransactions(), tp)) {
 									block.addTransaction(tp);
 								}
 							}
@@ -249,7 +249,7 @@ public class BlockChainList extends PeerToPeer implements List {
 									recvBlockChainList.get(recvBlockChainList.size() - 1).getHash());
 							for (int i = 0; i < curBlockChainTransactions.size(); i++) {
 								TransactionPackage tp = curBlockChainTransactions.get(i);
-								if (new ValidationService().validate(this.getTransactions(), tp)) {
+								if (new ValidationService().validateTransaction(this.getTransactions(), tp)) {
 									block.addTransaction(tp);
 								}
 							}
@@ -292,7 +292,7 @@ public class BlockChainList extends PeerToPeer implements List {
 				Entry<String, TransactionPackage> nounceWait = itr.next();
 				String waitHash = nounceWait.getKey();
 				synchronized (this) {
-					if (toAdd.containsKey(waitHash) && new ValidationService().validate(this.getTransactions(), nounceWait.getValue())) {
+					if (toAdd.containsKey(waitHash) && new ValidationService().validateTransaction(this.getTransactions(), nounceWait.getValue())) {
 						Nounce genNounce = toAdd.get(nounceWait.getKey());
 						block.addTransaction(nounceWait.getValue(), genNounce);
 						block.signBlock(sk);
@@ -308,7 +308,7 @@ public class BlockChainList extends PeerToPeer implements List {
 								addToSend(solvedBlock);
 							}
 						}
-					} else if  (peers == null && new ValidationService().validate(this.getTransactions(), nounceWait.getValue())) {
+					} else if  (peers == null && new ValidationService().validateTransaction(this.getTransactions(), nounceWait.getValue())) {
 						block.addTransaction(nounceWait.getValue());
 						block.signBlock(sk);
 						this.size++;
@@ -327,6 +327,10 @@ public class BlockChainList extends PeerToPeer implements List {
 				}
 			}
 		}
+	}
+
+	public ConcurrentHashMap<String, Boolean> getVerifiedBlocks() {
+		return verifiedBlocks;
 	}
 
 	public Map<TransactionPackage, Integer> getBiggestCount() {
@@ -474,5 +478,29 @@ public class BlockChainList extends PeerToPeer implements List {
 			hashes += prevHash;
 		}
 		return new RSAService().getSHA256(hashes);
+	}
+
+	@Override
+	public String getPrevHash() throws Exception {
+		List<Block> chain = this.getBlockChainList();
+		if (chain.size() > 0) {
+			String prevHash = chain.get(chain.size()-1).getHash();
+			return prevHash;
+		} else {
+			return "000000000000000";
+		}
+	}
+
+	@Override
+	public List<TransactionPackage> getOnChainTransaction() {
+		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+
+		for (Entry<String, Block> b : blockChain.entrySet()) {
+			for (TransactionPackage t : b.getValue().getTransactions()) {
+				ts.add(t);
+			}
+		}
+
+		return ts;
 	}
 }

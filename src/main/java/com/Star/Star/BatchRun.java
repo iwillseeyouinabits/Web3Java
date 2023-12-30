@@ -156,6 +156,9 @@ public class BatchRun {
 		for(Map.Entry<TransactionPackage, Integer> entry : bigCount.entrySet()) {
 			System.out.println(entry.getKey().getHash() + " " + entry.getValue());
 		}
+		for(Map.Entry<String, Boolean> entry : unsyncedBlockChainLists[0].getVerifiedBlocks().entrySet()) {
+			System.out.println(entry.getKey() + " " + entry.getValue());
+		}
 		System.out.println("====================================================================");
 	}
 }

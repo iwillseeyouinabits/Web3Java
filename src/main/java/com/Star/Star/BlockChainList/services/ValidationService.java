@@ -1,6 +1,7 @@
 package com.Star.Star.BlockChainList.services;
 
 import com.Star.Star.*;
+import com.Star.Star.BlockChainList.BlockChainListParts.Block;
 import com.Star.Star.BlockChainList.BlockChainListParts.CurrencyTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.HttpTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.ShellTransaction;
@@ -12,6 +13,7 @@ import org.json.JSONTokener;
 import static com.Star.Star.BlockChainList.services.DateService.getCurrentTime;
 import static com.Star.Star.BlockChainList.services.TransactionService.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,7 +21,7 @@ import java.util.List;
  */
 public class ValidationService {
 
-    public boolean validate(List<TransactionPackage> tps, TransactionPackage tp) {
+    public boolean validateTransaction(List<TransactionPackage> tps, TransactionPackage tp) {
         return !tps.contains(tp) && this.validateTransactionMetadata(tp);
     }
 
@@ -54,6 +56,42 @@ public class ValidationService {
             return false;
         }
         return transactionRule && hashRule && signatureRule;
+    }
+
+    public boolean validateBlock(Block block, String prevHash, List<TransactionPackage> onChainTransactions) throws Exception {
+        boolean validate = true;
+        if (!block.getPrevHash().equals(prevHash)) {
+            // System.out.println(prevHash + " " + block.getPrevHash());
+            validate = false;
+        }
+        List<TransactionPackage> validatedTransactionsInBlock = new ArrayList<TransactionPackage>();
+        for (TransactionPackage tp : block.getTransactions()) {
+            List<TransactionPackage> validatedTransactions = new ArrayList<TransactionPackage>();
+            validatedTransactions.addAll(onChainTransactions);
+            validatedTransactions.addAll(validatedTransactionsInBlock);
+            if (!this.validateTransaction(validatedTransactions, tp)) {
+                validate = false;
+                break;
+            } else {
+                validatedTransactionsInBlock.add(tp);
+            }
+        }
+        return validate;
+    }
+
+    public boolean validateBlockMetaData(Block block) throws Exception {
+        boolean validate = true;
+        if (!RSAService.verify(block.getHash(), block.getBlockSig(), block.getMinerPublicKey())) {
+            validate = false;
+        }
+        for (int i = 0; i < block.getNounce().getPublicKeys().size(); i++) {
+            if (!RSAService.verify(block.getNounce().getHash() + true, block.getNounce().getHashSignatures().get(i), block.getNounce().getPublicKeys().get(i))){
+                validate = false;
+                break;
+            }
+        }
+
+        return validate;
     }
 
     public boolean validateHttpTransactionMetadata(HttpTransaction transaction, double gassFee) {

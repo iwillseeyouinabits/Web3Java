@@ -21,6 +21,18 @@ public class Nounce implements Serializable {
         sortPublicKeysAndSignatures();
     }
 
+    public ArrayList<PublicKey> getPublicKeys() {
+        return publicKeys;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public ArrayList<String> getHashSignatures() {
+        return hashSignatures;
+    }
+
     private void sortPublicKeysAndSignatures() {
         for (int i = 0; i < publicKeys.size(); i++) {
             for (int j = 0; j < publicKeys.size()-1; j++) {

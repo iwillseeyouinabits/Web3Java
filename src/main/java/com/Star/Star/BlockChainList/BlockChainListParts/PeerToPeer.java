@@ -17,7 +17,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyProperties.AssertingParty.Verification;
+
 import com.Star.Star.BlockChainList.services.RSAService;
+import com.Star.Star.BlockChainList.services.ValidationService;
 
 /**
  * Peer to peer code for blockchain
@@ -33,6 +36,7 @@ public abstract class PeerToPeer {
 	private Socket[] sendSockets;
 	protected ConcurrentHashMap<String, TCPPackage> toSend = new ConcurrentHashMap<String, TCPPackage>();
 	protected ConcurrentHashMap<String, Nounce> toAdd = new ConcurrentHashMap<String, Nounce>();
+	protected ConcurrentHashMap<String, Boolean> verifiedBlocks = new ConcurrentHashMap<String, Boolean>();
 	protected boolean close = false;
 	ObjectOutputStream[] outs;
 	ObjectInputStream[] ins;
@@ -129,15 +133,26 @@ public abstract class PeerToPeer {
 	protected void sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
 		ArrayList<String> signatureOfHash = new ArrayList<String>();
 		ArrayList<PublicKey> pks = new ArrayList<PublicKey>();
+		boolean verify = true;
 		for (int i = 0; i < peers.length; i++) {
 			this.outs[i].writeObject(tcpPack);
 			TCPResponse res = (TCPResponse) this.ins[i].readObject();
 			this.toSend.remove(res.getHash());
 			signatureOfHash.add(res.getHashSignature());
 			pks.add(res.getPublicKey());
+			if (!res.getGuarantee()) {
+				verify = false;
+			}
 		}
 		if (tcpPack instanceof TCPTransactionPackagePackage) {
-			this.toAdd.put(tcpPack.getHash(), new Nounce(signatureOfHash, pks, tcpPack.getHash()));
+			if (verify) {
+				this.toAdd.put(tcpPack.getHash(), new Nounce(signatureOfHash, pks, tcpPack.getHash()));
+			} else {
+				System.out.println(((TransactionPackage)tcpPack.getPackage()).toString());
+			}
+		}
+		if (tcpPack instanceof TCPBlockPackage) {
+			this.verifiedBlocks.put(tcpPack.getHash(), verify);
 		}
 	}
 
@@ -156,6 +171,10 @@ public abstract class PeerToPeer {
 
 	public abstract void onRecieveMessage(Object msg) throws Exception;
 
+	public abstract String getPrevHash() throws Exception;
+
+	public abstract List<TransactionPackage> getOnChainTransaction();
+
 	public class Receive extends Thread {
 		private final Socket clientSocket;
 
@@ -172,8 +191,13 @@ public abstract class PeerToPeer {
 					final TCPPackage tcpPack = (TCPPackage) in.readObject();
 					String hash = tcpPack.getHash();
 					Object msg = tcpPack.getPackage();
-					String signatureOfHash = RSAService.sign(hash, sk);
-					out.writeObject(new TCPResponse(pk, hash, signatureOfHash));
+					if (msg instanceof TransactionPackage) {
+						out.writeObject(new TCPResponse(pk, sk, hash, new ValidationService().validateTransactionMetadata((TransactionPackage) msg)));
+					} else if (msg instanceof Block) {
+						out.writeObject(new TCPResponse(pk, sk, hash, new ValidationService().validateBlock((Block) msg, getPrevHash(), getOnChainTransaction())));
+					} else {
+						out.writeObject(new TCPResponse(pk, sk, hash, true));
+					}
 					onRecieveMessage(msg);
 				}
 				clientSocket.close();

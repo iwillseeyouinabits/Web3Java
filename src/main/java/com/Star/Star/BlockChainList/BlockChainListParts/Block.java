@@ -42,8 +42,20 @@ public class Block implements Serializable{
 		this.blockBody.setNounce(n);
 	}
 	
+	public Nounce getNounce() throws Exception { 
+		return this.blockBody.getNounce(); 
+	}
+	
+	public String getPrevHash() throws Exception { 
+		return this.blockBody.getPrevBlockHash(); 
+	}
+	
 	public String getHash() throws Exception { 
 		return this.blockBody.getHash(); 
+	}
+
+	public PublicKey getMinerPublicKey() {
+		return (this.blockBody.getMinerPk());
 	}
 
 	public BlockBody getBlockBody() { return blockBody; }
@@ -57,6 +69,7 @@ public class Block implements Serializable{
 	public JSONObject getJson() throws Exception {
 		JSONObject json = new JSONObject();
 		json.put("Hash", this.getHash());
+		json.put("Miner Public Key", RSAService.pkToString(this.getMinerPublicKey()));
 		json.put("Miner Signature", this.blockSig);
 		if(this.blockBody.getNounce() != null)
 			json.put("Nounce", this.blockBody.getNounce().getJson());

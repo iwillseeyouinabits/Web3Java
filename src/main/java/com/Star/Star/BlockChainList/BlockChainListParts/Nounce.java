@@ -1,11 +1,15 @@
 package com.Star.Star.BlockChainList.BlockChainListParts;
+import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import com.Star.Star.BlockChainList.services.RSAService;
 
-public class Nounce {
+public class Nounce implements Serializable {
     private ArrayList<String> hashSignatures;
     private ArrayList<PublicKey> publicKeys;
     private String hash;
@@ -39,4 +43,22 @@ public class Nounce {
         }
         return RSAService.getSHA256(sigs);
     }
+	
+	public JSONObject getJson() throws Exception {
+		JSONObject json = new JSONObject();
+		JSONArray pks = new JSONArray();
+		for (int i = 0; i < publicKeys.size(); i++) {
+			pks.put(RSAService.pkToString(publicKeys.get(i)));
+		}
+		JSONArray signatures = new JSONArray();
+		for (int i = 0; i < hashSignatures.size(); i++) {
+			signatures.put(hashSignatures.get(i));
+		}
+		json.put("Transaction Hash", this.hash);
+		json.put("Peer Public Keys", pks);
+		json.put("Signatures", signatures);
+		json.put("Nounce", this.getNounce());
+		return json;
+	}
+	
 }

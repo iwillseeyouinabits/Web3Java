@@ -15,7 +15,7 @@ public class TCPTransactionPackagePackage extends TCPPackage implements Serializ
 		this.hash = tp.getHash();
 	}
 
-	public Object getPackage () {
+	public TransactionPackage getPackage () {
 		return this.tp;
 	}
 	

@@ -15,7 +15,7 @@ public class TCPBlockPackage extends TCPPackage implements Serializable {
 		this.hash = block.getHash();
 	}
 	
-	public Object getPackage() {
+	public Block getPackage() {
 		return this.block;
 	}
 	

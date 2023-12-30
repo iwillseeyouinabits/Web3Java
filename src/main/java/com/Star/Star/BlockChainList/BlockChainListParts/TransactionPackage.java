@@ -58,6 +58,15 @@ public class TransactionPackage implements Serializable {
 	public int hashCode(){
 		return Integer.parseInt(this.getHash().substring(0, 7).toUpperCase(), 16);
 	}
+
+	public String toString() {
+		try {
+			return this.getJson().toString();
+		} catch (JSONException | NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return "";
+		}
+	}
 	
 	public JSONObject getJson() throws JSONException, NoSuchAlgorithmException {
 		JSONObject json = new JSONObject();

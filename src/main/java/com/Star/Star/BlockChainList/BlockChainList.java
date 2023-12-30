@@ -294,7 +294,7 @@ public class BlockChainList extends PeerToPeer implements List {
 				synchronized (this) {
 					if (toAdd.containsKey(waitHash) && new ValidationService().validate(this.getTransactions(), nounceWait.getValue())) {
 						Nounce genNounce = toAdd.get(nounceWait.getKey());
-						block.addTransaction(nounceWait.getValue(), genNounce.getNounce());
+						block.addTransaction(nounceWait.getValue(), genNounce);
 						block.signBlock(sk);
 						this.size++;
 

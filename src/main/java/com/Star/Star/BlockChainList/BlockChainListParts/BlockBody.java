@@ -18,7 +18,7 @@ import com.Star.Star.BlockChainList.services.RSAService;
 public class BlockBody implements Serializable {
 	final String prevBlockHash;
 	final PublicKey minerPk;
-	private String nounce;
+	private Nounce nounce;
 	long timestamp;
 	List<TransactionPackage> block;
 	String hashableToken;
@@ -46,8 +46,12 @@ public class BlockBody implements Serializable {
 		return RSAService.getSHA256(getHashableToken());
 	}
 
-	public void setNounce(String n) {
+	public void setNounce(Nounce n) {
 		this.nounce = n;
+	}
+
+	public Nounce getNounce() {
+		return this.nounce;
 	}
 	
 	public JSONObject getJson() throws Exception {
@@ -58,17 +62,15 @@ public class BlockBody implements Serializable {
 		}
 		json.put("Previous Block Hash", this.prevBlockHash);
 		json.put("Miner Address", RSAService.pkToString(this.minerPk));
-		json.put("Hash", this.getHash());
-		json.put("Nounce", this.nounce);
 		json.put("Transactions", transactions);
 		return json;
 	}
 	
 	private String getHashableToken() throws Exception {
-		// if (this.nounce.length() == 0) {
-		// 	throw new Exception("Nounce Not Defined: Cannot Get Hash Of Block");
-		// }
-		return this.nounce + this.hashableToken;
+		if (this.nounce == null) {
+			return this.hashableToken;
+		}
+		return this.nounce.getNounce() + this.hashableToken;
 	}
 
 }

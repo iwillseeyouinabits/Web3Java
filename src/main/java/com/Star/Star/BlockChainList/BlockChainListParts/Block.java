@@ -23,7 +23,7 @@ public class Block implements Serializable{
 		this.blockBody = new BlockBody(prevBlockHash, pk);
 	}
 	
-	public void addTransaction(TransactionPackage transaction, String nounce) throws Exception {
+	public void addTransaction(TransactionPackage transaction, Nounce nounce) throws Exception {
 			this.setNounce(nounce);
 			this.blockBody.addTransaction(transaction);
 	}
@@ -38,7 +38,7 @@ public class Block implements Serializable{
 		this.blockSig = RSAService.sign(this.blockBody.getHash(), sk);
 	}
 
-	public void setNounce(String n) {
+	public void setNounce(Nounce n) {
 		this.blockBody.setNounce(n);
 	}
 	
@@ -58,6 +58,8 @@ public class Block implements Serializable{
 		JSONObject json = new JSONObject();
 		json.put("Hash", this.getHash());
 		json.put("Miner Signature", this.blockSig);
+		if(this.blockBody.getNounce() != null)
+			json.put("Nounce", this.blockBody.getNounce().getJson());
 		json.put("Body", blockBody.getJson());
 		return json;
 	}

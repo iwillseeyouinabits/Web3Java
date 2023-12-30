@@ -15,7 +15,7 @@ public class TCPBlockChainPackage extends TCPPackage implements Serializable {
 		this.hash = this.blockChain.getEntireHashOfBlockChain();
 	}
 	
-	public Object getPackage() {
+	public BlockChainTCPPackage getPackage() {
 		return this.blockChain;
 	}
 	

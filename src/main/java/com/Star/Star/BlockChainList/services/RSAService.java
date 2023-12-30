@@ -12,6 +12,7 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.Cipher;
 
@@ -33,7 +34,7 @@ public class RSAService {
 		return Hex.encodeHexString(pk.getEncoded());
 	}
 	
-	public String skToString(PrivateKey sk) {
+	public static String skToString(PrivateKey sk) {
 		return Hex.encodeHexString(sk.getEncoded());
 	}
 	
@@ -46,9 +47,8 @@ public class RSAService {
 	
 	public static PrivateKey stringToSk(String skString) throws InvalidKeySpecException, NoSuchAlgorithmException, DecoderException {
 		byte[] byteKey = Hex.decodeHex(skString);
-		X509EncodedKeySpec X509seceretKey = new X509EncodedKeySpec(byteKey);
         KeyFactory kf = KeyFactory.getInstance("RSA");
-        return kf.generatePrivate(X509seceretKey);
+        return kf.generatePrivate(new PKCS8EncodedKeySpec(byteKey));
 	}
 	
 	public String encrypt(String plainText, PublicKey publicKey) throws Exception {

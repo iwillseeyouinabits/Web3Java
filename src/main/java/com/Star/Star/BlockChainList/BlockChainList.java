@@ -300,6 +300,7 @@ public class BlockChainList extends PeerToPeer implements List {
 
 						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
 								&& !recievedBlockHashes.contains(block.getHash())) {
+							this.verifiedBlocks.put(block.getHash(), true);
 							Block solvedBlock = block;
 							block = new Block(pk, block.getHash());
 							recievedBlockHashes.add(solvedBlock.getHash());
@@ -315,6 +316,7 @@ public class BlockChainList extends PeerToPeer implements List {
 
 						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
 								&& !recievedBlockHashes.contains(block.getHash())) {
+							this.verifiedBlocks.put(block.getHash(), true);
 							Block solvedBlock = block;
 							block = new Block(pk, block.getHash());
 							recievedBlockHashes.add(solvedBlock.getHash());
@@ -374,7 +376,6 @@ public class BlockChainList extends PeerToPeer implements List {
 
 	public ArrayList<String> getBlockChainBlockHashes() throws Exception {
 		ArrayList<String> hashes = new ArrayList<String>();
-		hashes.add(this.block.getHash());
 		String prevHash = "000000000000000";
 		while (this.blockChain.containsKey(prevHash)) {
 			Block curBlock = this.blockChain.get(prevHash);
@@ -481,18 +482,12 @@ public class BlockChainList extends PeerToPeer implements List {
 	}
 
 	@Override
-	public String getPrevHash() throws Exception {
-		List<Block> chain = this.getBlockChainList();
-		if (chain.size() > 0) {
-			String prevHash = chain.get(chain.size()-1).getHash();
-			return prevHash;
-		} else {
-			return "000000000000000";
-		}
+	public synchronized String getPrevHash() throws Exception {
+		return block.getPrevHash();
 	}
 
 	@Override
-	public List<TransactionPackage> getOnChainTransaction() {
+	public synchronized List<TransactionPackage> getOnChainTransaction() {
 		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
 
 		for (Entry<String, Block> b : blockChain.entrySet()) {

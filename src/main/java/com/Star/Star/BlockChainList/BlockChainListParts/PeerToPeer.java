@@ -131,6 +131,9 @@ public abstract class PeerToPeer {
 	}
 
 	protected void sendTCP(TCPPackage tcpPack) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+		if (tcpPack instanceof TCPBlockPackage) {
+			// System.out.println(name + " >>> " + tcpPack.getHash());
+		}
 		ArrayList<String> signatureOfHash = new ArrayList<String>();
 		ArrayList<PublicKey> pks = new ArrayList<PublicKey>();
 		boolean verify = true;
@@ -151,7 +154,8 @@ public abstract class PeerToPeer {
 				System.out.println(((TransactionPackage)tcpPack.getPackage()).toString());
 			}
 		}
-		if (tcpPack instanceof TCPBlockPackage) {
+		if (tcpPack instanceof TCPBlockPackage && (!this.verifiedBlocks.containsKey(tcpPack.getHash()) || !this.verifiedBlocks.get(tcpPack.getHash()))) {
+			// System.out.println(name + " => " + tcpPack.getHash() + " " + this.verifiedBlocks.get(tcpPack.getHash()) + " " + verify);
 			this.verifiedBlocks.put(tcpPack.getHash(), verify);
 		}
 	}
@@ -194,7 +198,9 @@ public abstract class PeerToPeer {
 					if (msg instanceof TransactionPackage) {
 						out.writeObject(new TCPResponse(pk, sk, hash, new ValidationService().validateTransactionMetadata((TransactionPackage) msg)));
 					} else if (msg instanceof Block) {
-						out.writeObject(new TCPResponse(pk, sk, hash, new ValidationService().validateBlock((Block) msg, getPrevHash(), getOnChainTransaction())));
+						boolean guarantee = new ValidationService().validateBlock((Block) msg, getPrevHash(), getOnChainTransaction(), verifiedBlocks);
+						// System.out.println(name + " -> " + ((Block) msg).getHash() + " " + guarantee + " " + verifiedBlocks.get(((Block) msg).getHash()));
+						out.writeObject(new TCPResponse(pk, sk, hash, guarantee));
 					} else {
 						out.writeObject(new TCPResponse(pk, sk, hash, true));
 					}

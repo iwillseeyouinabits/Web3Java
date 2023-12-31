@@ -1,6 +1,5 @@
 package com.Star.Star.BlockChainList.services;
 
-import com.Star.Star.*;
 import com.Star.Star.BlockChainList.BlockChainListParts.Block;
 import com.Star.Star.BlockChainList.BlockChainListParts.CurrencyTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.HttpTransaction;
@@ -10,11 +9,12 @@ import com.Star.Star.BlockChainList.BlockChainListParts.TransactionPackage;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import static com.Star.Star.BlockChainList.services.DateService.getCurrentTime;
+
 import static com.Star.Star.BlockChainList.services.TransactionService.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service layer that contains validation logic for blocks and transactions
@@ -58,11 +58,15 @@ public class ValidationService {
         return transactionRule && hashRule && signatureRule;
     }
 
-    public boolean validateBlock(Block block, String prevHash, List<TransactionPackage> onChainTransactions) throws Exception {
-        boolean validate = true;
+    public synchronized boolean validateBlock(Block block, String prevHash, List<TransactionPackage> onChainTransactions, ConcurrentHashMap<String, Boolean> verifiedBlocks) throws Exception {
+        
+        if (verifiedBlocks.get(block.getHash()) != null && verifiedBlocks.get(block.getHash())) {
+            return true;
+        }
+
+        // System.out.println(prevHash + " " + block.getPrevHash() + " " + (block.getPrevHash().equals(prevHash)));
         if (!block.getPrevHash().equals(prevHash)) {
-            // System.out.println(prevHash + " " + block.getPrevHash());
-            validate = false;
+            return false;
         }
         List<TransactionPackage> validatedTransactionsInBlock = new ArrayList<TransactionPackage>();
         for (TransactionPackage tp : block.getTransactions()) {
@@ -70,13 +74,13 @@ public class ValidationService {
             validatedTransactions.addAll(onChainTransactions);
             validatedTransactions.addAll(validatedTransactionsInBlock);
             if (!this.validateTransaction(validatedTransactions, tp)) {
-                validate = false;
-                break;
+                // System.out.println("Transaction Verify Fail: " + tp.getHash());
+                return false;
             } else {
                 validatedTransactionsInBlock.add(tp);
             }
         }
-        return validate;
+        return true;
     }
 
     public boolean validateBlockMetaData(Block block) throws Exception {

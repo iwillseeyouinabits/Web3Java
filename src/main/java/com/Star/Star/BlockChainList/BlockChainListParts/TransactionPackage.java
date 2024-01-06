@@ -75,8 +75,8 @@ public class TransactionPackage implements Serializable {
 			transactionType = "Currency";
 		} else if (transaction instanceof HttpTransaction) {
 			transactionType = "Http";
-		} else if (transaction instanceof ShellTransaction) {
-			transactionType = "Shell";
+		} else if (transaction instanceof DockerTransaction) {
+			transactionType = "Docker";
 		} 
 		json.put("Transaction Type", transactionType);
 		json.put("Signature", this.signature);

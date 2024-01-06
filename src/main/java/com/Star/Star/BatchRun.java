@@ -16,7 +16,7 @@ import com.Star.Star.BlockChainList.BlockChainListParts.BlockTesterThreaded;
 import com.Star.Star.BlockChainList.BlockChainListParts.CurrencyTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.HttpTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.ServerAddress;
-import com.Star.Star.BlockChainList.BlockChainListParts.ShellTransaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.DockerTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.Transaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.TransactionPackage;
 import com.Star.Star.BlockChainList.services.RSAService;
@@ -94,10 +94,30 @@ public class BatchRun {
 				genericTransaction = new CurrencyTransaction(keys1.getPublic(), keys2.getPublic(), 5,
 						UUID.randomUUID().toString());
 			} else {
-				genericTransaction = new ShellTransaction(
+				genericTransaction = new DockerTransaction(
 						keys1.getPublic(),
-						"while true; do { \\\n  echo -ne \"HTTP/1.0 200 OK\\r\\nContent-Length: $(wc -c <\"<HTML><BODY><H1>Hello World!</H1></BODY></HTML>\")\\r\\n\\r\\n\"; \\\n  cat \"<HTML><BODY><H1>Hello World!</H1></BODY></HTML>\"; } | nc -l -p 8080 ; \\ \ndone",
-						"Ride Share", UUID.randomUUID().toString());
+						"# Use a lightweight base image\r\n" + //
+								"FROM nginx:alpine\r\n" + //
+								"\r\n" + //
+								"# Create a directory to store the archive\r\n" + //
+								"WORKDIR /usr/share/nginx/html\r\n" + //
+								"\r\n" + //
+								"# Copy the compressed archive into the container\r\n" + //
+								"COPY archive.zip .\r\n" + //
+								"\r\n" + //
+								"# Install unzip utility\r\n" + //
+								"RUN apk --no-cache add unzip\r\n" + //
+								"\r\n" + //
+								"# Extract the contents of the archive\r\n" + //
+								"RUN unzip archive.zip && rm archive.zip\r\n" + //
+								"\r\n" + //
+								"# Expose the default Nginx port\r\n" + //
+								"EXPOSE 80\r\n" + //
+								"\r\n" + //
+								"# Start Nginx\r\n" + //
+								"CMD [\"nginx\", \"-g\", \"daemon off;\"]",
+						"UEsDBAoAAAAAAKsDn1eSFT9wPgAAAD4AAAAKAAAAaW5kZXguaHRtbDxIVE1MPg0KCTxCT0RZPg0KCQk8SDE+V2VsY29tZSBUbyBTdGFyPC9IMT4NCgk8L0JPRFk+DQo8L0hUTUw+UEsBAj8ACgAAAAAAqwOfV5IVP3A+AAAAPgAAAAoAJAAAAAAAAAAgAAAAAAAAAGluZGV4Lmh0bWwKACAAAAAAAAEAGAD35gROqjvaAQAAAAAAAAAAAAAAAAAAAABQSwUGAAAAAAEAAQBcAAAAZgAAAAAA", 
+						UUID.randomUUID().toString());
 			}
 			TransactionPackage tp = new TransactionPackage(genericTransaction, keys1.getPrivate());
 			syncedTransactionPackages.add(tp);

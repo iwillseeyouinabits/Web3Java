@@ -1,40 +1,36 @@
 package com.Star.Star.BlockChainList.BlockChainListParts;
 
-import static com.Star.Star.BlockChainList.services.TransactionService.getShellTransactionHash;
+import static com.Star.Star.BlockChainList.services.TransactionService.getDockerTransactionHash;
 
 import java.io.Serializable;
-import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.UUID;
 
 import org.json.JSONObject;
 
 import com.Star.Star.BlockChainList.services.RSAService;
 
 /**
- * ShellTransaction
+ * Docker Transaction
  */
-public class ShellTransaction extends Transaction implements Serializable {
+public class DockerTransaction extends Transaction implements Serializable {
 
 	final String uuid;
 	final PublicKey websiteAdr;
-	final String shell;
-	final String website_name;
+	final String dockerFile;
+	final String archiveBase64;
 	
-	public ShellTransaction(PublicKey websiteAdr, String shell, String website_name, String uuid) {
+	public DockerTransaction(PublicKey websiteAdr, String dockerFile, String archiveBase64, String uuid) {
 		super();
 		this.websiteAdr = websiteAdr;
-		this.shell = shell;
-		this.website_name = website_name;
+		this.dockerFile = dockerFile;
+		this.archiveBase64 = archiveBase64;
 		this.uuid = uuid;
 	}	
 	
 	@Override
 	public long byteSize() {
-		return 64*3 + this.shell.length() + this.website_name.length();
+		return 64*3 + this.dockerFile.length() + this.archiveBase64.length();
 	}
 
 	@Override
@@ -43,12 +39,12 @@ public class ShellTransaction extends Transaction implements Serializable {
 	}
 	
 	public String getHash() throws NoSuchAlgorithmException {
-		return getShellTransactionHash(this);
+		return getDockerTransactionHash(this);
 	}
 
-	public String getShell() {return shell;}
+	public String getDockerFile() {return dockerFile;}
 
-	public String getWebsite_name() {return website_name;}
+	public String getArchiveBase64() {return archiveBase64;}
 
 	public PublicKey getWebsiteAdr() {return websiteAdr;}
 	
@@ -59,7 +55,8 @@ public class ShellTransaction extends Transaction implements Serializable {
 	public JSONObject getJson() {
 		JSONObject json = new JSONObject();
 		json.put("Website Address", RSAService.pkToString(this.websiteAdr));
-		json.put("Shell Script", this.shell);
+		json.put("Docker File", this.dockerFile);
+		json.put("Archive Base64", this.archiveBase64);
 		json.put("UUID", this.getUuid().toString());
 		return json;
 	}

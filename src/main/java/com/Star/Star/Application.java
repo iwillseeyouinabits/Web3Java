@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application {
 
 	public static void main(String[] args) {
-		boolean testOnBackend = true;
+		boolean testOnBackend = false;
 		if (testOnBackend) {
 			try {
 				new BatchRun().testBatchRun(1000, 2, 2);

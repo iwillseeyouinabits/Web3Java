@@ -19,8 +19,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.Star.Star.BlockChainList.BlockChainListParts.Block;
 import com.Star.Star.BlockChainList.BlockChainListParts.BlockChainTCPPackage;

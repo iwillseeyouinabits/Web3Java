@@ -3,9 +3,10 @@ package com.Star.Star.BlockChainList.services;
 import com.Star.Star.BlockChainList.BlockChainListParts.Block;
 import com.Star.Star.BlockChainList.BlockChainListParts.CurrencyTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.HttpTransaction;
-import com.Star.Star.BlockChainList.BlockChainListParts.ShellTransaction;
+import com.Star.Star.BlockChainList.BlockChainListParts.DockerTransaction;
 import com.Star.Star.BlockChainList.BlockChainListParts.TransactionPackage;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -39,11 +40,11 @@ public class ValidationService {
                 hashRule = transactionPackage.getHash().equals(
                         getHTTPTransactionHash((HttpTransaction) transactionPackage.getTransaction()));
             }
-            else if (transactionPackage.getTransaction() instanceof ShellTransaction) {
-                transactionRule = validateShellTransactionMetadata (
-                        (ShellTransaction)transactionPackage.getTransaction(), transactionPackage.getGassFee());
+            else if (transactionPackage.getTransaction() instanceof DockerTransaction) {
+                transactionRule = validateDockerTransactionMetadata (
+                        (DockerTransaction)transactionPackage.getTransaction(), transactionPackage.getGassFee());
                 hashRule = transactionPackage.getHash().equals(
-                        getShellTransactionHash((ShellTransaction) transactionPackage.getTransaction()));
+                        getDockerTransactionHash((DockerTransaction) transactionPackage.getTransaction()));
             }
             else {
                 transactionRule = validateCurrencyTransactionMetadata (
@@ -104,7 +105,7 @@ public class ValidationService {
         //validating gass fee
         gassFeeRule = gassFee == calcHttpGassFee(transaction.getPostJson());
         //validating valid json
-        jsonRule = new JSONTokener(transaction.getPostJson()).nextValue() instanceof JSONObject;
+        jsonRule = this.isValidJson(transaction.getPostJson());
         return jsonRule && gassFeeRule;
     }
 
@@ -117,9 +118,18 @@ public class ValidationService {
         minTokenRule = transaction.getTokens() >= 0;
         return minTokenRule && gassFeeRule;
     }
+    
+    public boolean isValidJson(String json) {
+    try {
+        new JSONObject(json);
+    } catch (JSONException e) {
+        return false;
+    }
+    return true;
+}
 
-    public boolean validateShellTransactionMetadata(ShellTransaction transaction, double gassFee) {
+    public boolean validateDockerTransactionMetadata(DockerTransaction transaction, double gassFee) {
         //validating gass fee
-        return gassFee == calcShellGassFee(transaction.getShell(), transaction.getWebsite_name());
+        return gassFee == calcDockerGassFee(transaction.getDockerFile(), transaction.getArchiveBase64());
     }
 }

@@ -1,5 +1,7 @@
 package com.Star.Star.API;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -13,11 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.Star.Star.BlockChainList.BlockChainList;
@@ -31,15 +31,59 @@ import com.Star.Star.BlockChainList.services.RSAService;
 
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController
-@RequestMapping("/test")
+@RequestMapping("/API")
 public class Controller {
 
   BlockChainList history;
 
   public Controller() throws Exception {
-    KeyPair kp = new RSAService().generateKeyPair();
-    history = new BlockChainList("Miner", kp.getPrivate(), kp.getPublic(), 1, "127.0.0.1", 42069,
-        null, 1);
+    // Enter data using BufferReader
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    System.out.println("Would you like to provide your own Public Key and Private Key? y/n?");
+    String responseKP = reader.readLine();
+    PublicKey pk;
+    PrivateKey sk;
+    if (responseKP.equals("y")) {
+      System.out.println("Public Key: ");
+      pk = RSAService.stringToPk(reader.readLine());
+      System.out.println("Private Key: ");
+      sk = RSAService.stringToSk(reader.readLine());
+    } else if (responseKP.equals("n")) {
+      KeyPair kp = new RSAService().generateKeyPair();
+      pk = kp.getPublic();
+      sk = kp.getPrivate();
+      System.out.println("Public Key => " + RSAService.pkToString(pk));
+      System.out.println("Private Key => " + RSAService.skToString(sk));
+    } else {
+      throw new Exception("Not A Valid Response");
+    }
+    
+    System.out.println("Port To Run Block Chain On: ");
+    int bcPort = Integer.parseInt(reader.readLine());
+    
+    System.out.println("Number Of Peers: ");
+    int numPeers = Integer.parseInt(reader.readLine());
+    ServerAddress[] peers = null;
+    if (numPeers > 0) {
+      peers = new ServerAddress[numPeers];
+      for (int i = 0; i < numPeers; i++) {
+        System.out.println("Port of peer #" + i + " : ");
+        int peerPort = Integer.parseInt(reader.readLine());
+        System.out.println("Public Key of peer #" + i + " : ");
+        PublicKey peerPK = RSAService.stringToPk(reader.readLine());
+        peers[i] = new ServerAddress("127.0.0.1", peerPort, peerPK);
+      }
+    }
+    
+    history = new BlockChainList("Miner", sk, pk, 1, "127.0.0.1", bcPort,
+        peers, 1);
+
+    if (numPeers > 0) {
+      System.out.println("Press any key to connect BlockChain to Peers");
+      reader.readLine();
+      history.connectToPeer();
+    }
+    reader.close();
   }
 
   @RequestMapping(value = "/getKeyPair", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

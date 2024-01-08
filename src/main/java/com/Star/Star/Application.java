@@ -11,7 +11,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class Application {
 
-	public static void main(String[] args) throws NumberFormatException, IOException {
+	public static void main(String[] args) throws Exception {
+		
+		// new BatchRun().testBatchRun(2000, 2, 2);
 		SpringApplication.run(Application.class, args);
 	}
 

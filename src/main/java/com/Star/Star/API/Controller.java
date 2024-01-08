@@ -39,16 +39,16 @@ public class Controller {
   public Controller() throws Exception {
     // Enter data using BufferReader
     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-    System.out.println("Would you like to provide your own Public Key and Private Key? y/n?");
+    System.out.println("Would you like to provide your own Public Key and Private Key? Y/n?");
     String responseKP = reader.readLine();
     PublicKey pk;
     PrivateKey sk;
-    if (responseKP.equals("y")) {
+    if (responseKP.toLowerCase().equals("y")) {
       System.out.println("Public Key: ");
       pk = RSAService.stringToPk(reader.readLine());
       System.out.println("Private Key: ");
       sk = RSAService.stringToSk(reader.readLine());
-    } else if (responseKP.equals("n")) {
+    } else if (responseKP.toLowerCase().equals("n")) {
       KeyPair kp = new RSAService().generateKeyPair();
       pk = kp.getPublic();
       sk = kp.getPrivate();
@@ -71,7 +71,14 @@ public class Controller {
         int peerPort = Integer.parseInt(reader.readLine());
         System.out.println("Public Key of peer #" + i + " : ");
         PublicKey peerPK = RSAService.stringToPk(reader.readLine());
-        peers[i] = new ServerAddress("127.0.0.1", peerPort, peerPK);
+        System.out.println("Is the peer on a local host (Y/n) : ");
+        String localHostPeerResponse = (reader.readLine());
+        String peerAddress = "127.0.0.1";
+        if (localHostPeerResponse.toLowerCase().equals("n")) {
+          System.out.println("IP of peer: ");
+          peerAddress = (reader.readLine());
+        }
+        peers[i] = new ServerAddress(peerAddress, peerPort, peerPK);
       }
     }
     

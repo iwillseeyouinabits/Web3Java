@@ -97,6 +97,31 @@ public class BlockChainList extends PeerToPeer implements List {
 		return ts;
 	}
 
+	public List<TransactionPackage> getOnChainVerifiedBlockTransactions() {
+		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+
+		for (Entry<String, Block> b : blockChain.entrySet()) {
+			if (verifiedBlocks.contains(b.getKey()) && verifiedBlocks.get(b.getKey()))
+			for (TransactionPackage t : b.getValue().getTransactions()) {
+				ts.add(t);
+			}
+		}
+
+		return ts;
+	}
+
+	public List<TransactionPackage> getOnChainTransactions() {
+		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
+
+		for (Entry<String, Block> b : blockChain.entrySet()) {
+			for (TransactionPackage t : b.getValue().getTransactions()) {
+				ts.add(t);
+			}
+		}
+
+		return ts;
+	}
+
 	public List<TransactionPackage> getTransactions() {
 		List<TransactionPackage> ts = Collections.synchronizedList(new ArrayList<TransactionPackage>());
 		ts.addAll(block.getTransactions());
@@ -298,7 +323,6 @@ public class BlockChainList extends PeerToPeer implements List {
 
 						if (block.getHash().substring(0, this.difficultyNum).equals(this.difficultyStr)
 								&& !recievedBlockHashes.contains(block.getHash())) {
-							this.verifiedBlocks.put(block.getHash(), true);
 							Block solvedBlock = block;
 							block = new Block(pk, block.getHash());
 							recievedBlockHashes.add(solvedBlock.getHash());
